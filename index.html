@@ -1,17 +1,47 @@
-<!DOCTYPE html>
 <html>
 <head>
 <title>Page Title</title>
 </head>
 <body>
 
-<input type="text" id="inp">
-<button onclick="test()">test</button>
+<input type="namber" id="inp">
+<input type="namber" id="inp2">
+
+<div id="buttons style="center">
+
+<button onclick="plus()">+</button>
+
+<button onclick="minus()">-</button>
+
+<button onclick="ymnojutb()">*</button>
+
+<button onclick="podelitb()">/</button>
+
+</div>
+
 <p id="p"></p>
 
 <script>
-function test() {
-  document.getElementById("p").innerHTML = document.getElementById("inp").value;
+
+let p = document.getElementById("p").innerHTML;
+let inp = document.getElementById("inp").value;
+let inp2 = document.getElementById("inp2").value;
+
+
+function plus(a,b) {
+  return p = inp + inp2
+}
+
+function minus(a,b) {
+  return p = inp - inp2
+}
+
+function ymnojutb(a,b) {
+  return p = imp * inp2
+}
+
+function podelitb(a,b) {
+  return p = inp / inp2
 }
 </script>
 
