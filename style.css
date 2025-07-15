@@ -1,1 +1,41 @@
+/* Основні стилі */
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+  touch-action: none; /* для мобільного керування */
+}
+
+/* Канвас гри */
+canvas {
+  display: block;
+  margin: 0 auto;
+  background: #87CEEB; /* небо */
+  width: 100vw;       /* адаптивна ширина */
+  height: 100vh;      /* адаптивна висота */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Контейнер кнопок */
+#controls {
+  position: fixed;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 10;
+}
+
+/* Кнопки мобільного керування */
+#controls button {
+  font-size: 30px;
+  padding: 10px 25px;
+  margin: 5px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  color: black;
+  box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
 /* CSS код буде додано вручну */
