@@ -1,49 +1,98 @@
-<html>
+<!DOCTYPE html>
+<html lang="uk">
 <head>
-<title>Page Title</title>
+  <meta charset="UTF-8">
+  <title>Тамагочі Online</title>
+  <style>
+    body { font-family: sans-serif; background: #ffe; padding: 2rem; }
+    .status { margin-top: 1rem; }
+    button { margin: 0.5rem; }
+  </style>
 </head>
 <body>
 
-<input type="namber" id="inp">
-<input type="namber" id="inp2">
+  <h1>🐾 Віртуальний Тамагочі</h1>
+  <label>Ім'я: <input id="nameInput" /></label>
+  <button onclick="startGame()">Почати</button>
 
-<div id="buttons style="center">
+  <div id="game" style="display:none;">
+    <h2 id="petName"></h2>
+    <div class="status" id="status"></div>
 
-<button onclick="plus()">+</button>
+    <button onclick="feed()">🍗 Годувати</button>
+    <button onclick="play()">⚽ Грати</button>
+    <button onclick="sleep()">😴 Спати</button>
+  </div>
 
-<button onclick="minus()">-</button>
+  <script>
+    let pet = null;
 
-<button onclick="ymnojutb()">*</button>
+    function startGame() {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) return alert("Введи ім'я!");
 
-<button onclick="podelitb()">/</button>
+      pet = {
+        name,
+        hunger: 100,
+        energy: 100,
+        happiness: 100,
+        alive: true,
+        age: 0
+      };
 
-</div>
+      document.getElementById("petName").textContent = name;
+      document.getElementById("game").style.display = "block";
+      updateStatus();
 
-<p id="p"></p>
+      setInterval(() => {
+        if (!pet.alive) return;
+        pet.hunger -= 2;
+        pet.energy -= 1;
+        pet.happiness -= 1;
+        pet.age += 1;
+        if (pet.hunger <= 0 || pet.energy <= 0 || pet.happiness <= 0) {
+          pet.alive = false;
+          alert(`${pet.name} помер... 😢`);
+        }
+        updateStatus();
+      }, 3000);
+    }
 
-<script>
+    function feed() {
+      if (!pet.alive) return;
+      pet.hunger = Math.min(pet.hunger + 20, 100);
+      updateStatus();
+    }
 
-let p = document.getElementById("p").innerHTML;
-let inp = document.getElementById("inp").value;
-let inp2 = document.getElementById("inp2").value;
+    function play() {
+      if (!pet.alive) return;
+      if (pet.energy >= 10) {
+        pet.happiness = Math.min(pet.happiness + 15, 100);
+        pet.energy -= 10;
+        pet.hunger -= 5;
+      } else {
+        alert(`${pet.name} занадто втомився.`);
+      }
+      updateStatus();
+    }
 
+    function sleep() {
+      if (!pet.alive) return;
+      pet.energy = Math.min(pet.energy + 25, 100);
+      pet.hunger -= 10;
+      updateStatus();
+    }
 
-function plus(a,b) {
-  return p = inp + inp2
-}
-
-function minus(a,b) {
-  return p = inp - inp2
-}
-
-function ymnojutb(a,b) {
-  return p = imp * inp2
-}
-
-function podelitb(a,b) {
-  return p = inp / inp2
-}
-</script>
+    function updateStatus() {
+      const s = pet;
+      document.getElementById("status").innerHTML =
+        `Вік: ${s.age} <br>` +
+        `Ситість: ${s.hunger} <br>` +
+        `Настрій: ${s.happiness} <br>` +
+        `Енергія: ${s.energy} <br>` +
+        `Стан: ${s.alive ? "живий 🐾" : "💀 RIP"}`;
+    }
+  </script>
 
 </body>
 </html>
