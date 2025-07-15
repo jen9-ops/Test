@@ -21,3 +21,203 @@
 
     input, button {
       padding: 0.5rem;
+      font-size: 1rem;
+      margin: 0.2rem;
+    }
+
+    #chatLog {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 1rem;
+      padding: 0.5rem;
+      background: #fff;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🐾 AI Тамагочі</h1>
+
+<div id="setup">
+  <input id="nameInput" placeholder="Введи ім'я..." />
+  <button onclick="startGame()">Почати</button>
+</div>
+
+<div id="game" style="display:none;">
+  <h2 id="petName"></h2>
+  <svg id="petSVG" width="100" height="100" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="40" fill="#FFD700" />
+    <circle cx="35" cy="40" r="5" fill="#000" />
+    <circle cx="65" cy="40" r="5" fill="#000" />
+    <path d="M35,65 Q50,75 65,65" stroke="#000" stroke-width="3" fill="none" />
+  </svg>
+
+  <div class="status" id="status"></div>
+  <button onclick="feed()">🍖 Годувати</button>
+  <button onclick="play()">⚽ Грати</button>
+  <button onclick="sleep()">😴 Спати</button>
+  <button onclick="reset()">🔄 Скинути</button>
+
+  <div class="chat">
+    <h3>💬 Говори з Тамагочі</h3>
+    <input id="chatInput" placeholder="Щось скажи..." onkeydown="if(event.key==='Enter')talkGPT()" />
+    <button onclick="talkGPT()">Сказати</button>
+    <div id="chatLog"></div>
+  </div>
+</div>
+
+<script>
+let pet = null;
+const defaultPet = {
+  name: "",
+  hunger: 100,
+  energy: 100,
+  happiness: 100,
+  age: 0,
+  alive: true
+};
+
+function savePet() {
+  localStorage.setItem("pet", JSON.stringify(pet));
+}
+function loadPet() {
+  const saved = localStorage.getItem("pet");
+  if (saved) {
+    pet = JSON.parse(saved);
+    return true;
+  }
+  return false;
+}
+function reset() {
+  localStorage.removeItem("pet");
+  location.reload();
+}
+function startGame() {
+  const name = document.getElementById("nameInput").value.trim();
+  if (!name) return alert("Введи ім'я!");
+  pet = { ...defaultPet, name };
+  savePet();
+  initGame();
+}
+function initGame() {
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("game").style.display = "block";
+  document.getElementById("petName").textContent = pet.name;
+  updatePetVisual();
+  updateStatus();
+
+  if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+  }
+
+  setInterval(() => {
+    if (!pet.alive) return;
+    pet.hunger -= 2;
+    pet.energy -= 1;
+    pet.happiness -= 1;
+    pet.age += 1;
+    if (pet.hunger <= 30) notifyUser("Твій Тамагочі голодний!");
+    if (pet.hunger <= 0 || pet.energy <= 0 || pet.happiness <= 0) {
+      pet.alive = false;
+      speak("Я... більше не можу... 💀");
+    }
+    savePet();
+    updateStatus();
+    updatePetVisual();
+  }, 6000);
+}
+function updateStatus() {
+  document.getElementById("status").innerHTML =
+    `Вік: ${pet.age}<br>` +
+    `Ситість: ${pet.hunger}<br>` +
+    `Настрій: ${pet.happiness}<br>` +
+    `Енергія: ${pet.energy}<br>` +
+    `Стан: ${pet.alive ? "живий ✅" : "мертвий ❌"}`;
+}
+function updatePetVisual() {
+  const svg = document.getElementById("petSVG");
+  const scale = 1 + pet.age * 0.02;
+  const width = 1 + (pet.hunger - 100) * 0.01;
+  svg.style.transform = `scale(${scale}, ${width})`;
+}
+function feed() {
+  if (!pet.alive) return;
+  pet.hunger = Math.min(pet.hunger + 20, 150);
+  pet.happiness += 5;
+  speak("М-м, дякую, це було смачно!");
+  savePet();
+  updateStatus();
+  updatePetVisual();
+}
+function play() {
+  if (!pet.alive) return;
+  if (pet.energy >= 10) {
+    pet.happiness = Math.min(pet.happiness + 15, 100);
+    pet.energy -= 10;
+    pet.hunger -= 5;
+    speak("Це було весело! 😺");
+  } else {
+    speak("Я втомився грати...");
+  }
+  savePet();
+  updateStatus();
+  updatePetVisual();
+}
+function sleep() {
+  if (!pet.alive) return;
+  pet.energy = Math.min(pet.energy + 25, 100);
+  pet.hunger -= 10;
+  speak("Добраніч... Zzz...");
+  savePet();
+  updateStatus();
+  updatePetVisual();
+}
+function speak(text) {
+  const log = document.getElementById("chatLog");
+  const bubble = document.createElement("div");
+  bubble.textContent = `🐾 ${pet.name}: ${text}`;
+  log.appendChild(bubble);
+  log.scrollTop = log.scrollHeight;
+}
+function notifyUser(message) {
+  if (Notification.permission === "granted") {
+    new Notification(message);
+  }
+}
+async function talkGPT() {
+  const input = document.getElementById("chatInput");
+  const userText = input.value.trim();
+  if (!userText) return;
+  input.value = "";
+
+  const userBubble = document.createElement("div");
+  userBubble.textContent = `👤 Ти: ${userText}`;
+  document.getElementById("chatLog").appendChild(userBubble);
+
+  speak("Думаю...");
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer YOUR_OPENAI_API_KEY", // 🔒 ВСТАВ СЮДИ СВІЙ КЛЮЧ
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "system", content: "Ти милий віртуальний улюбленець, говори просто і по-дружньому." },
+                 { role: "user", content: userText }]
+    })
+  });
+
+  const data = await res.json();
+  const reply = data.choices?.[0]?.message?.content || "Нічого не зрозумів...";
+  speak(reply);
+}
+
+if (loadPet()) initGame();
+</script>
+
+</body>
+</html>
