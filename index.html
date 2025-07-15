@@ -1,210 +1,23 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <title>Тамагочі AI</title>
+  <meta charset="UTF-8" />
+  <title>AI Тамагочі</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f0f8ff;
-      padding: 2rem;
+      font-family: sans-serif;
       text-align: center;
+      background: #e0f7fa;
+      padding: 2rem;
     }
-    .pet {
-      font-size: 5rem;
-      animation: wiggle 1s infinite alternate;
-      margin: 1rem;
+
+    svg {
+      transition: transform 0.5s ease;
     }
-    @keyframes wiggle {
-      0% { transform: rotate(-5deg); }
-      100% { transform: rotate(5deg); }
-    }
+
     .status, .chat {
       margin-top: 1.5rem;
     }
+
     input, button {
       padding: 0.5rem;
-      font-size: 1rem;
-      margin: 0.2rem;
-    }
-    #chatLog {
-      max-height: 150px;
-      overflow-y: auto;
-      margin-top: 0.5rem;
-      border: 1px solid #ccc;
-      padding: 0.5rem;
-      background: #fff;
-      text-align: left;
-    }
-  </style>
-</head>
-<body>
-
-  <h1>🐾 Тамагочі AI</h1>
-
-  <div id="setup">
-    <input id="nameInput" placeholder="Введи ім'я..." />
-    <button onclick="startGame()">Почати</button>
-  </div>
-
-  <div id="game" style="display:none;">
-    <h2 id="petName"></h2>
-    <div class="pet" id="petFace">😺</div>
-
-    <div class="status" id="status"></div>
-
-    <button onclick="feed()">🍖 Годувати</button>
-    <button onclick="play()">⚽ Грати</button>
-    <button onclick="sleep()">😴 Спати</button>
-    <button onclick="reset()">🔄 Скинути</button>
-
-    <div class="chat">
-      <h3>💬 Говори з Тамагочі</h3>
-      <input id="chatInput" placeholder="Напиши щось..." onkeydown="if(event.key==='Enter') talk()" />
-      <button onclick="talk()">Сказати</button>
-      <div id="chatLog"></div>
-    </div>
-  </div>
-
-  <script>
-    let pet = null;
-
-    const defaultPet = {
-      name: "",
-      hunger: 100,
-      energy: 100,
-      happiness: 100,
-      age: 0,
-      alive: true
-    };
-
-    function savePet() {
-      localStorage.setItem("pet", JSON.stringify(pet));
-    }
-
-    function loadPet() {
-      const saved = localStorage.getItem("pet");
-      if (saved) {
-        pet = JSON.parse(saved);
-        return true;
-      }
-      return false;
-    }
-
-    function reset() {
-      localStorage.removeItem("pet");
-      location.reload();
-    }
-
-    function startGame() {
-      const name = document.getElementById("nameInput").value.trim();
-      if (!name) return alert("Введи ім'я!");
-
-      pet = { ...defaultPet, name };
-      savePet();
-      initGame();
-    }
-
-    function initGame() {
-      document.getElementById("setup").style.display = "none";
-      document.getElementById("game").style.display = "block";
-      document.getElementById("petName").textContent = pet.name;
-      updateStatus();
-
-      setInterval(() => {
-        if (!pet.alive) return;
-        pet.hunger -= 2;
-        pet.energy -= 1;
-        pet.happiness -= 1;
-        pet.age += 1;
-        if (pet.hunger <= 0 || pet.energy <= 0 || pet.happiness <= 0) {
-          pet.alive = false;
-          document.getElementById("petFace").textContent = "💀";
-          speak(`${pet.name} помер...`);
-        }
-        savePet();
-        updateStatus();
-      }, 5000);
-    }
-
-    function updateStatus() {
-      const s = pet;
-      document.getElementById("status").innerHTML =
-        `Вік: ${s.age}<br>` +
-        `Ситість: ${s.hunger}<br>` +
-        `Настрій: ${s.happiness}<br>` +
-        `Енергія: ${s.energy}<br>` +
-        `Стан: ${s.alive ? "живий 🟢" : "мертвий ❌"}`;
-    }
-
-    function feed() {
-      if (!pet.alive) return;
-      pet.hunger = Math.min(pet.hunger + 20, 100);
-      pet.happiness += 5;
-      speak("М-м-м, смачно! 😋");
-      savePet();
-      updateStatus();
-    }
-
-    function play() {
-      if (!pet.alive) return;
-      if (pet.energy >= 10) {
-        pet.happiness = Math.min(pet.happiness + 15, 100);
-        pet.energy -= 10;
-        pet.hunger -= 5;
-        speak("Було весело! 🤩");
-      } else {
-        speak("Я занадто втомлений... 🥱");
-      }
-      savePet();
-      updateStatus();
-    }
-
-    function sleep() {
-      if (!pet.alive) return;
-      pet.energy = Math.min(pet.energy + 25, 100);
-      pet.hunger -= 10;
-      speak("Zzz... 😴");
-      savePet();
-      updateStatus();
-    }
-
-    function speak(text) {
-      const log = document.getElementById("chatLog");
-      const bubble = document.createElement("div");
-      bubble.textContent = `🐾 ${pet.name}: ${text}`;
-      log.appendChild(bubble);
-      log.scrollTop = log.scrollHeight;
-    }
-
-    function talk() {
-      const input = document.getElementById("chatInput");
-      const userText = input.value.trim();
-      if (!userText) return;
-      input.value = "";
-
-      const log = document.getElementById("chatLog");
-      const userBubble = document.createElement("div");
-      userBubble.textContent = `👤 Ти: ${userText}`;
-      log.appendChild(userBubble);
-
-      // "Фейковий AI", реагує на ключові слова
-      let response = "Я не знаю, що сказати... 🤔";
-      if (/прив/i.test(userText)) response = "Привіт, друже! 👋";
-      else if (/як справи/i.test(userText)) response = "Все супер! А в тебе?";
-      else if (/голодн/i.test(userText)) response = "Трохи... 🥺";
-      else if (/грати/i.test(userText)) response = "Обожнюю гратися! ⚽";
-      else if (/спати/i.test(userText)) response = "Хочу під ковдру... 😴";
-      else if (/любиш/i.test(userText)) response = "Я люблю тебе ❤️";
-      else if (/ти хто/i.test(userText)) response = "Я твій віртуальний друг, Тамагочі 🐾";
-
-      speak(response);
-      log.scrollTop = log.scrollHeight;
-    }
-
-    // Автоматичне відновлення
-    if (loadPet()) initGame();
-  </script>
-
-</body>
-</html>
