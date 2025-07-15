@@ -1,6 +1,25 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+// Аудіо
+const jumpSound = new Audio("assets/jump.wav");
+const coinSound = new Audio("assets/coin.wav");
+
+// Спрайт монет
+const coinSprite = new Image();
+coinSprite.src = "assets/coin.png";
+
+// Список монет
+const coins = [
+  new Coin(180, 160),
+  new Coin(260, 120),
+  new Coin(340, 160),
+];
+
+// Рахунок
+let score = 0;
+
+
 // Встановлюємо фізичний розмір канвасу (NES стиль)
 canvas.width = 512;
 canvas.height = 240;
@@ -138,6 +157,49 @@ function draw() {
     16, 16
   );
 }
+
+// Монета (клас)
+class Coin {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = 16;
+    this.collected = false;
+    this.frame = 0;
+  }
+
+  draw() {
+    if (this.collected) return;
+    ctx.drawImage(
+      coinSprite,
+      this.frame * 16, 0, 16, 16,
+      this.x, this.y,
+      16, 16
+    );
+  }
+
+  update() {
+    if (this.collected) return;
+
+    // Анімація
+    this.frame = (Math.floor(Date.now() / 100) % 4);
+
+    // Колізія з гравцем
+    if (
+      player.x < this.x + this.size &&
+      player.x + player.width > this.x &&
+      player.y < this.y + this.size &&
+      player.y + player.height > this.y
+    ) {
+      this.collected = true;
+      coinSound.play();
+      score++;
+    }
+  }
+}
+
+
+
 
 // Головний цикл
 function gameLoop() {
