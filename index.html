@@ -1,24 +1,318 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <title>Super Mario Classic</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Шаховий рой — 5x5</title>
+  <style>
+    body { text-align: center; font-family: sans-serif; }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(5, 60px);
+      grid-template-rows: repeat(5, 60px);
+      margin: 20px auto;
+      border: 3px solid #333;
+    }
+    .cell {
+      width: 60px;
+      height: 60px;
+      font-size: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .white { background-color: #eee; }
+    .black { background-color: #999; }
+  </style>
 </head>
 <body>
-  <!-- Гра -->
-  <canvas id="gameCanvas" width="512" height="240"></canvas>
+  <h2>Шаховий рой — хаос на 5x5</h2>
+  <div id="board"></div>
+  <p id="status">Гра починається...</p>
 
-  <!-- 📱 Мобільне керування -->
-  <div id="controls">
-    <button id="left">←</button>
-    <button id="right">→</button>
-    <button id="jump">⤴</button>
-  </div>
+  <script>
+    const boardEl = document.getElementById("board");
+    const statusEl = document.getElementById("status");
 
-  <!-- 🎮 Скрипт -->
-  <script src="game.js"></script>
+    let board = Array(5).fill(null).map(() => Array(5).fill(null));
+
+    // Стартові фігури: 2 гравці, по 5 фігур
+    board[0][0] = "bQ";
+    board[0][2] = "bP";
+    board[0][4] = "bQ";
+    board[1][1] = "bP";
+    board[1][3] = "bP";
+
+    board[4][0] = "wQ";
+    board[4][2] = "wP";
+    board[4][4] = "wQ";
+    board[3][1] = "wP";
+    board[3][3] = "wP";
+
+    const pieceIcons = { "P": "♟", "Q": "♛" };
+    let moveCount = 0;
+
+    function render() {
+      boardEl.innerHTML = "";
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          const cell = document.createElement("div");
+          cell.className = "cell " + ((i + j) % 2 === 0 ? "white" : "black");
+          const piece = board[i][j];
+          if (piece) {
+            cell.textContent = pieceIcons[piece[1]];
+            cell.style.color = piece[0] === "w" ? "white" : "black";
+            cell.style.backgroundColor = piece[0] === "w" ? "#55f" : "#f44";
+          }
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    function getMoves(i, j) {
+      const piece = board[i][j];
+      if (!piece) return [];
+
+      const [color, type] = [piece[0], piece[1]];
+      const moves = [];
+
+      const directions = {
+        "P": color === "w" ? [[-1, 0]] : [[1, 0]],
+        "Q": [[1,0], [-1,0], [0,1], [0,-1], [1,1], [-1,-1], [1,-1], [-1,1]]
+      };
+
+      for (const [di, dj] of directions[type]) {
+        const ni = i + di, nj = j + dj;
+        if (ni >= 0 && ni < 5 && nj >= 0 && nj < 5) {
+          const target = board[ni][nj];
+          if (!target || target[0] !== color) {
+            moves.push({ from: [i,j], to: [ni,nj], capture: !!target });
+          }
+        }
+      }
+
+      return moves;
+    }
+
+    function pieceValue(type) {
+      return type === "Q" ? 9 : 1;
+    }
+
+    function getAllMoves() {
+      const all = [];
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          if (board[i][j]) {
+            const moves = getMoves(i,j);
+            if (moves.length) {
+              // Обрати найкращий хід (жадібно атакуючи ціннішу фігуру)
+              moves.sort((a, b) => {
+                const va = board[a.to[0]][a.to[1]];
+                const vb = board[b.to[0]][b.to[1]];
+                return (vb ? pieceValue(vb[1]) : 0) - (va ? pieceValue(va[1]) : 0);
+              });
+              all.push(moves[0]);
+            }
+          }
+        }
+      }
+      return all;
+    }
+
+    function evolvePawn(i, j) {
+      const piece = board[i][j];
+      if (piece && piece[1] === "P") {
+        if ((piece[0] === "w" && i === 0) || (piece[0] === "b" && i === 4)) {
+          board[i][j] = piece[0] + "Q";
+          statusEl.textContent = `🎉 ${piece[0] === "w" ? "Білий" : "Чорний"} пішак еволюціонував!`;
+        }
+      }
+    }
+
+    function step() {
+      const allMoves = getAllMoves();
+      if (allMoves.length === 0 || moveCount > 200) {
+        statusEl.textContent = "Гра завершилась!";
+        return;
+      }
+
+      const move = allMoves[Math.floor(Math.random() * allMoves.length)];
+      const [fi, fj] = move.from;
+      const [ti, tj] = move.to;
+      const piece = board[fi][fj];
+
+      board[ti][tj] = piece;
+      board[fi][fj] = null;
+
+      evolvePawn(ti, tj);
+      moveCount++;
+
+      render();
+      statusEl.textContent = `Хід ${moveCount}: ${piece} з [${fi},${fj}] на [${ti},${tj}]`;
+
+      setTimeout(step, 700);
+    }
+
+    render();
+    setTimeout(step, 1000);
+  </script>
 </body>
 </html>
-<!-- HTML код буде додано вручну -->
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Шаховий рой — 5x5</title>
+  <style>
+    body { text-align: center; font-family: sans-serif; }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(5, 60px);
+      grid-template-rows: repeat(5, 60px);
+      margin: 20px auto;
+      border: 3px solid #333;
+    }
+    .cell {
+      width: 60px;
+      height: 60px;
+      font-size: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .white { background-color: #eee; }
+    .black { background-color: #999; }
+  </style>
+</head>
+<body>
+  <h2>Шаховий рой — хаос на 5x5</h2>
+  <div id="board"></div>
+  <p id="status">Гра починається...</p>
+
+  <script>
+    const boardEl = document.getElementById("board");
+    const statusEl = document.getElementById("status");
+
+    let board = Array(5).fill(null).map(() => Array(5).fill(null));
+
+    // Стартові фігури: 2 гравці, по 5 фігур
+    board[0][0] = "bQ";
+    board[0][2] = "bP";
+    board[0][4] = "bQ";
+    board[1][1] = "bP";
+    board[1][3] = "bP";
+
+    board[4][0] = "wQ";
+    board[4][2] = "wP";
+    board[4][4] = "wQ";
+    board[3][1] = "wP";
+    board[3][3] = "wP";
+
+    const pieceIcons = { "P": "♟", "Q": "♛" };
+    let moveCount = 0;
+
+    function render() {
+      boardEl.innerHTML = "";
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          const cell = document.createElement("div");
+          cell.className = "cell " + ((i + j) % 2 === 0 ? "white" : "black");
+          const piece = board[i][j];
+          if (piece) {
+            cell.textContent = pieceIcons[piece[1]];
+            cell.style.color = piece[0] === "w" ? "white" : "black";
+            cell.style.backgroundColor = piece[0] === "w" ? "#55f" : "#f44";
+          }
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    function getMoves(i, j) {
+      const piece = board[i][j];
+      if (!piece) return [];
+
+      const [color, type] = [piece[0], piece[1]];
+      const moves = [];
+
+      const directions = {
+        "P": color === "w" ? [[-1, 0]] : [[1, 0]],
+        "Q": [[1,0], [-1,0], [0,1], [0,-1], [1,1], [-1,-1], [1,-1], [-1,1]]
+      };
+
+      for (const [di, dj] of directions[type]) {
+        const ni = i + di, nj = j + dj;
+        if (ni >= 0 && ni < 5 && nj >= 0 && nj < 5) {
+          const target = board[ni][nj];
+          if (!target || target[0] !== color) {
+            moves.push({ from: [i,j], to: [ni,nj], capture: !!target });
+          }
+        }
+      }
+
+      return moves;
+    }
+
+    function pieceValue(type) {
+      return type === "Q" ? 9 : 1;
+    }
+
+    function getAllMoves() {
+      const all = [];
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          if (board[i][j]) {
+            const moves = getMoves(i,j);
+            if (moves.length) {
+              // Обрати найкращий хід (жадібно атакуючи ціннішу фігуру)
+              moves.sort((a, b) => {
+                const va = board[a.to[0]][a.to[1]];
+                const vb = board[b.to[0]][b.to[1]];
+                return (vb ? pieceValue(vb[1]) : 0) - (va ? pieceValue(va[1]) : 0);
+              });
+              all.push(moves[0]);
+            }
+          }
+        }
+      }
+      return all;
+    }
+
+    function evolvePawn(i, j) {
+      const piece = board[i][j];
+      if (piece && piece[1] === "P") {
+        if ((piece[0] === "w" && i === 0) || (piece[0] === "b" && i === 4)) {
+          board[i][j] = piece[0] + "Q";
+          statusEl.textContent = `🎉 ${piece[0] === "w" ? "Білий" : "Чорний"} пішак еволюціонував!`;
+        }
+      }
+    }
+
+    function step() {
+      const allMoves = getAllMoves();
+      if (allMoves.length === 0 || moveCount > 200) {
+        statusEl.textContent = "Гра завершилась!";
+        return;
+      }
+
+      const move = allMoves[Math.floor(Math.random() * allMoves.length)];
+      const [fi, fj] = move.from;
+      const [ti, tj] = move.to;
+      const piece = board[fi][fj];
+
+      board[ti][tj] = piece;
+      board[fi][fj] = null;
+
+      evolvePawn(ti, tj);
+      moveCount++;
+
+      render();
+      statusEl.textContent = `Хід ${moveCount}: ${piece} з [${fi},${fj}] на [${ti},${tj}]`;
+
+      setTimeout(step, 700);
+    }
+
+    render();
+    setTimeout(step, 1000);
+  </script>
+</body>
+</html>
