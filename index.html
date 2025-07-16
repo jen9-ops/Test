@@ -1,318 +1,640 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <title>Шаховий рой — 5x5</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>📝 Блокнот Ultra</title>
   <style>
-    body { text-align: center; font-family: sans-serif; }
-    #board {
-      display: grid;
-      grid-template-columns: repeat(5, 60px);
-      grid-template-rows: repeat(5, 60px);
-      margin: 20px auto;
-      border: 3px solid #333;
+    :root {
+      --bg: #1e1e1e;
+      --fg: #ddd;
+      --border: #444;
+      --highlight: #4CAF50;
+      --line: #2c2c2c;
     }
-    .cell {
-      width: 60px;
-      height: 60px;
-      font-size: 34px;
+    body.light {
+      --bg: #ffffff;
+      --fg: #111;
+      --border: #ccc;
+      --highlight: #007acc;
+      --line: #f0f0f0;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: monospace;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      flex-direction: column;
+      height: 100vh;
     }
-    .white { background-color: #eee; }
-    .black { background-color: #999; }
+
+    header {
+      padding: 0.5em;
+      background: var(--line);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5em;
+      font-weight: bold;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5em;
+      margin: 0.5em;
+    }
+
+    .tab {
+      background: var(--highlight);
+      color: white;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: #333;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5em;
+      flex-wrap: wrap;
+      margin: 0.5em;
+    }
+
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .lines {
+      background-color: var(--line);
+      color: #888;
+      padding: 1em 0.5em;
+      text-align: right;
+      user-select: none;
+      font-size: 16px;
+      overflow-y: hidden;
+      white-space: pre;
+      line-height: 1.5em;
+    }
+
+    textarea {
+      flex: 1;
+      background-color: var(--bg);
+      color: var(--fg);
+      border: none;
+      resize: none;
+      padding: 1em;
+      font-size: 16px;
+      line-height: 1.5em;
+      font-family: monospace;
+      outline: none;
+      overflow-y: auto;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    button, label, select {
+      background: var(--highlight);
+      color: white;
+      border: none;
+      padding: 0.4em 0.8em;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    #fileManager {
+      margin: 0.5em;
+      padding: 1em;
+      background: var(--line);
+      border-radius: 8px;
+    }
+
+    @media (max-width: 600px) {
+      textarea { font-size: 14px; }
+      .lines { font-size: 14px; }
+    }
   </style>
 </head>
 <body>
-  <h2>Шаховий рой — хаос на 5x5</h2>
-  <div id="board"></div>
-  <p id="status">Гра починається...</p>
+  <header>
+    <div>📝 <strong>Блокнот Ultra</strong></div>
+    <div>
+      <label><input type="checkbox" id="themeToggle"> 🌙/🌞</label>
+      <select id="fontSizeSelector">
+        <option value="14">Шрифт: 14</option>
+        <option value="16" selected>16</option>
+        <option value="18">18</option>
+        <option value="20">20</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="container">
+    <div class="lines" id="lines">1</div>
+    <textarea id="note" spellcheck="true" placeholder="Пиши тут..."></textarea>
+  </div>
+
+  <div class="controls">
+    <button onclick="newFile()">➕ Новий файл</button>
+    <button onclick="saveCurrent()">📅 Зберегти</button>
+    <label for="fileInput">📂 Відкрити</label>
+    <input type="file" id="fileInput" accept=".txt" />
+    <button onclick="showFileManager()">📁 Менеджер файлів</button>
+  </div>
+
+  <div id="fileManager" style="display:none;">
+    <h3>📁 Менеджер файлів</h3>
+    <ul id="fileList"></ul>
+    <button onclick="document.getElementById('fileManager').style.display='none'">Закрити</button>
+  </div>
 
   <script>
-    const boardEl = document.getElementById("board");
-    const statusEl = document.getElementById("status");
+    const note = document.getElementById("note");
+    const lines = document.getElementById("lines");
+    const tabs = document.getElementById("tabs");
+    const fontSizeSelector = document.getElementById("fontSizeSelector");
 
-    let board = Array(5).fill(null).map(() => Array(5).fill(null));
+    let files = {};
+    let currentFile = "Без назви";
 
-    // Стартові фігури: 2 гравці, по 5 фігур
-    board[0][0] = "bQ";
-    board[0][2] = "bP";
-    board[0][4] = "bQ";
-    board[1][1] = "bP";
-    board[1][3] = "bP";
+    function updateLines() {
+      const count = note.value.split("\n").length;
+      const lineNumbers = [];
+      for (let i = 1; i <= count; i++) {
+        lineNumbers.push(i);
+      }
+      lines.textContent = lineNumbers.join("\n");
+    }
 
-    board[4][0] = "wQ";
-    board[4][2] = "wP";
-    board[4][4] = "wQ";
-    board[3][1] = "wP";
-    board[3][3] = "wP";
+    function switchTo(file) {
+      saveCurrent();
+      currentFile = file;
+      note.value = files[file] || "";
+      highlightActiveTab();
+      updateLines();
+    }
 
-    const pieceIcons = { "P": "♟", "Q": "♛" };
-    let moveCount = 0;
+    function highlightActiveTab() {
+      tabs.innerHTML = "";
+      Object.keys(files).forEach(name => {
+        const tab = document.createElement("div");
+        tab.className = "tab" + (name === currentFile ? " active" : "");
+        tab.textContent = name;
+        tab.onclick = () => switchTo(name);
+        tabs.appendChild(tab);
+      });
+    }
 
-    function render() {
-      boardEl.innerHTML = "";
-      for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 5; j++) {
-          const cell = document.createElement("div");
-          cell.className = "cell " + ((i + j) % 2 === 0 ? "white" : "black");
-          const piece = board[i][j];
-          if (piece) {
-            cell.textContent = pieceIcons[piece[1]];
-            cell.style.color = piece[0] === "w" ? "white" : "black";
-            cell.style.backgroundColor = piece[0] === "w" ? "#55f" : "#f44";
-          }
-          boardEl.appendChild(cell);
-        }
+    function newFile() {
+      const name = prompt("Назва нового файлу:");
+      if (!name || files[name]) return;
+      files[name] = "";
+      switchTo(name);
+    }
+
+    function saveCurrent() {
+      files[currentFile] = note.value;
+      localStorage.setItem("files", JSON.stringify(files));
+    }
+
+    function loadFromStorage() {
+      const saved = localStorage.getItem("files");
+      if (saved) {
+        files = JSON.parse(saved);
+        const first = Object.keys(files)[0];
+        if (first) switchTo(first);
+      } else {
+        files["Без назви"] = "";
+        switchTo("Без назви");
       }
     }
 
-    function getMoves(i, j) {
-      const piece = board[i][j];
-      if (!piece) return [];
+    document.getElementById("themeToggle").addEventListener("change", e => {
+      document.body.classList.toggle("light", e.target.checked);
+      localStorage.setItem("theme", e.target.checked ? "light" : "dark");
+    });
 
-      const [color, type] = [piece[0], piece[1]];
-      const moves = [];
+    fontSizeSelector.addEventListener("change", e => {
+      note.style.fontSize = e.target.value + "px";
+      lines.style.fontSize = e.target.value + "px";
+    });
 
-      const directions = {
-        "P": color === "w" ? [[-1, 0]] : [[1, 0]],
-        "Q": [[1,0], [-1,0], [0,1], [0,-1], [1,1], [-1,-1], [1,-1], [-1,1]]
+    note.addEventListener("input", () => {
+      updateLines();
+      saveCurrent();
+    });
+
+    note.addEventListener("scroll", () => {
+      lines.scrollTop = note.scrollTop;
+    });
+
+    document.getElementById("fileInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const name = file.name.replace(".txt", "");
+        files[name] = reader.result;
+        switchTo(name);
       };
+      reader.readAsText(file);
+    });
 
-      for (const [di, dj] of directions[type]) {
-        const ni = i + di, nj = j + dj;
-        if (ni >= 0 && ni < 5 && nj >= 0 && nj < 5) {
-          const target = board[ni][nj];
-          if (!target || target[0] !== color) {
-            moves.push({ from: [i,j], to: [ni,nj], capture: !!target });
+    function showFileManager() {
+      const list = document.getElementById("fileList");
+      list.innerHTML = "";
+
+      Object.keys(files).forEach(name => {
+        const li = document.createElement("li");
+        li.style.marginBottom = "0.5em";
+
+        const span = document.createElement("span");
+        span.textContent = name;
+        span.style.marginRight = "1em";
+
+        const renameBtn = document.createElement("button");
+        renameBtn.textContent = "✏️";
+        renameBtn.onclick = () => {
+          const newName = prompt("Нова назва файлу:", name);
+          if (!newName || newName === name || files[newName]) return;
+          files[newName] = files[name];
+          delete files[name];
+          if (currentFile === name) currentFile = newName;
+          saveCurrent();
+          highlightActiveTab();
+          showFileManager();
+        };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "❌";
+        deleteBtn.style.marginLeft = "0.5em";
+        deleteBtn.onclick = () => {
+          if (!confirm(`Видалити файл "${name}"?`)) return;
+          delete files[name];
+          if (currentFile === name) {
+            const next = Object.keys(files)[0] || "Без назви";
+            files[next] ??= "";
+            currentFile = next;
+            note.value = files[currentFile];
           }
-        }
-      }
+          saveCurrent();
+          highlightActiveTab();
+          showFileManager();
+        };
 
-      return moves;
+        li.appendChild(span);
+        li.appendChild(renameBtn);
+        li.appendChild(deleteBtn);
+        list.appendChild(li);
+      });
+
+      document.getElementById("fileManager").style.display = "block";
     }
 
-    function pieceValue(type) {
-      return type === "Q" ? 9 : 1;
+    // Init
+    loadFromStorage();
+    updateLines();
+    if (localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light");
+      document.getElementById("themeToggle").checked = true;
     }
-
-    function getAllMoves() {
-      const all = [];
-      for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 5; j++) {
-          if (board[i][j]) {
-            const moves = getMoves(i,j);
-            if (moves.length) {
-              // Обрати найкращий хід (жадібно атакуючи ціннішу фігуру)
-              moves.sort((a, b) => {
-                const va = board[a.to[0]][a.to[1]];
-                const vb = board[b.to[0]][b.to[1]];
-                return (vb ? pieceValue(vb[1]) : 0) - (va ? pieceValue(va[1]) : 0);
-              });
-              all.push(moves[0]);
-            }
-          }
-        }
-      }
-      return all;
-    }
-
-    function evolvePawn(i, j) {
-      const piece = board[i][j];
-      if (piece && piece[1] === "P") {
-        if ((piece[0] === "w" && i === 0) || (piece[0] === "b" && i === 4)) {
-          board[i][j] = piece[0] + "Q";
-          statusEl.textContent = `🎉 ${piece[0] === "w" ? "Білий" : "Чорний"} пішак еволюціонував!`;
-        }
-      }
-    }
-
-    function step() {
-      const allMoves = getAllMoves();
-      if (allMoves.length === 0 || moveCount > 200) {
-        statusEl.textContent = "Гра завершилась!";
-        return;
-      }
-
-      const move = allMoves[Math.floor(Math.random() * allMoves.length)];
-      const [fi, fj] = move.from;
-      const [ti, tj] = move.to;
-      const piece = board[fi][fj];
-
-      board[ti][tj] = piece;
-      board[fi][fj] = null;
-
-      evolvePawn(ti, tj);
-      moveCount++;
-
-      render();
-      statusEl.textContent = `Хід ${moveCount}: ${piece} з [${fi},${fj}] на [${ti},${tj}]`;
-
-      setTimeout(step, 700);
-    }
-
-    render();
-    setTimeout(step, 1000);
   </script>
 </body>
 </html>
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <title>Шаховий рой — 5x5</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>📝 Блокнот Ultra</title>
   <style>
-    body { text-align: center; font-family: sans-serif; }
-    #board {
-      display: grid;
-      grid-template-columns: repeat(5, 60px);
-      grid-template-rows: repeat(5, 60px);
-      margin: 20px auto;
-      border: 3px solid #333;
+    :root {
+      --bg: #1e1e1e;
+      --fg: #ddd;
+      --border: #444;
+      --highlight: #4CAF50;
+      --line: #2c2c2c;
     }
-    .cell {
-      width: 60px;
-      height: 60px;
-      font-size: 34px;
+    body.light {
+      --bg: #ffffff;
+      --fg: #111;
+      --border: #ccc;
+      --highlight: #007acc;
+      --line: #f0f0f0;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: monospace;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      flex-direction: column;
+      height: 100vh;
     }
-    .white { background-color: #eee; }
-    .black { background-color: #999; }
+
+    header {
+      padding: 0.5em;
+      background: var(--line);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5em;
+      font-weight: bold;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5em;
+      margin: 0.5em;
+    }
+
+    .tab {
+      background: var(--highlight);
+      color: white;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: #333;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5em;
+      flex-wrap: wrap;
+      margin: 0.5em;
+    }
+
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .lines {
+      background-color: var(--line);
+      color: #888;
+      padding: 1em 0.5em;
+      text-align: right;
+      user-select: none;
+      font-size: 16px;
+      overflow-y: hidden;
+      white-space: pre;
+      line-height: 1.5em;
+    }
+
+    textarea {
+      flex: 1;
+      background-color: var(--bg);
+      color: var(--fg);
+      border: none;
+      resize: none;
+      padding: 1em;
+      font-size: 16px;
+      line-height: 1.5em;
+      font-family: monospace;
+      outline: none;
+      overflow-y: auto;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    button, label, select {
+      background: var(--highlight);
+      color: white;
+      border: none;
+      padding: 0.4em 0.8em;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    #fileManager {
+      margin: 0.5em;
+      padding: 1em;
+      background: var(--line);
+      border-radius: 8px;
+    }
+
+    @media (max-width: 600px) {
+      textarea { font-size: 14px; }
+      .lines { font-size: 14px; }
+    }
   </style>
 </head>
 <body>
-  <h2>Шаховий рой — хаос на 5x5</h2>
-  <div id="board"></div>
-  <p id="status">Гра починається...</p>
+  <header>
+    <div>📝 <strong>Блокнот Ultra</strong></div>
+    <div>
+      <label><input type="checkbox" id="themeToggle"> 🌙/🌞</label>
+      <select id="fontSizeSelector">
+        <option value="14">Шрифт: 14</option>
+        <option value="16" selected>16</option>
+        <option value="18">18</option>
+        <option value="20">20</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="container">
+    <div class="lines" id="lines">1</div>
+    <textarea id="note" spellcheck="true" placeholder="Пиши тут..."></textarea>
+  </div>
+
+  <div class="controls">
+    <button onclick="newFile()">➕ Новий файл</button>
+    <button onclick="saveCurrent()">📅 Зберегти</button>
+    <label for="fileInput">📂 Відкрити</label>
+    <input type="file" id="fileInput" accept=".txt" />
+    <button onclick="showFileManager()">📁 Менеджер файлів</button>
+  </div>
+
+  <div id="fileManager" style="display:none;">
+    <h3>📁 Менеджер файлів</h3>
+    <ul id="fileList"></ul>
+    <button onclick="document.getElementById('fileManager').style.display='none'">Закрити</button>
+  </div>
 
   <script>
-    const boardEl = document.getElementById("board");
-    const statusEl = document.getElementById("status");
+    const note = document.getElementById("note");
+    const lines = document.getElementById("lines");
+    const tabs = document.getElementById("tabs");
+    const fontSizeSelector = document.getElementById("fontSizeSelector");
 
-    let board = Array(5).fill(null).map(() => Array(5).fill(null));
+    let files = {};
+    let currentFile = "Без назви";
 
-    // Стартові фігури: 2 гравці, по 5 фігур
-    board[0][0] = "bQ";
-    board[0][2] = "bP";
-    board[0][4] = "bQ";
-    board[1][1] = "bP";
-    board[1][3] = "bP";
+    function updateLines() {
+      const count = note.value.split("\n").length;
+      const lineNumbers = [];
+      for (let i = 1; i <= count; i++) {
+        lineNumbers.push(i);
+      }
+      lines.textContent = lineNumbers.join("\n");
+    }
 
-    board[4][0] = "wQ";
-    board[4][2] = "wP";
-    board[4][4] = "wQ";
-    board[3][1] = "wP";
-    board[3][3] = "wP";
+    function switchTo(file) {
+      saveCurrent();
+      currentFile = file;
+      note.value = files[file] || "";
+      highlightActiveTab();
+      updateLines();
+    }
 
-    const pieceIcons = { "P": "♟", "Q": "♛" };
-    let moveCount = 0;
+    function highlightActiveTab() {
+      tabs.innerHTML = "";
+      Object.keys(files).forEach(name => {
+        const tab = document.createElement("div");
+        tab.className = "tab" + (name === currentFile ? " active" : "");
+        tab.textContent = name;
+        tab.onclick = () => switchTo(name);
+        tabs.appendChild(tab);
+      });
+    }
 
-    function render() {
-      boardEl.innerHTML = "";
-      for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 5; j++) {
-          const cell = document.createElement("div");
-          cell.className = "cell " + ((i + j) % 2 === 0 ? "white" : "black");
-          const piece = board[i][j];
-          if (piece) {
-            cell.textContent = pieceIcons[piece[1]];
-            cell.style.color = piece[0] === "w" ? "white" : "black";
-            cell.style.backgroundColor = piece[0] === "w" ? "#55f" : "#f44";
-          }
-          boardEl.appendChild(cell);
-        }
+    function newFile() {
+      const name = prompt("Назва нового файлу:");
+      if (!name || files[name]) return;
+      files[name] = "";
+      switchTo(name);
+    }
+
+    function saveCurrent() {
+      files[currentFile] = note.value;
+      localStorage.setItem("files", JSON.stringify(files));
+    }
+
+    function loadFromStorage() {
+      const saved = localStorage.getItem("files");
+      if (saved) {
+        files = JSON.parse(saved);
+        const first = Object.keys(files)[0];
+        if (first) switchTo(first);
+      } else {
+        files["Без назви"] = "";
+        switchTo("Без назви");
       }
     }
 
-    function getMoves(i, j) {
-      const piece = board[i][j];
-      if (!piece) return [];
+    document.getElementById("themeToggle").addEventListener("change", e => {
+      document.body.classList.toggle("light", e.target.checked);
+      localStorage.setItem("theme", e.target.checked ? "light" : "dark");
+    });
 
-      const [color, type] = [piece[0], piece[1]];
-      const moves = [];
+    fontSizeSelector.addEventListener("change", e => {
+      note.style.fontSize = e.target.value + "px";
+      lines.style.fontSize = e.target.value + "px";
+    });
 
-      const directions = {
-        "P": color === "w" ? [[-1, 0]] : [[1, 0]],
-        "Q": [[1,0], [-1,0], [0,1], [0,-1], [1,1], [-1,-1], [1,-1], [-1,1]]
+    note.addEventListener("input", () => {
+      updateLines();
+      saveCurrent();
+    });
+
+    note.addEventListener("scroll", () => {
+      lines.scrollTop = note.scrollTop;
+    });
+
+    document.getElementById("fileInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const name = file.name.replace(".txt", "");
+        files[name] = reader.result;
+        switchTo(name);
       };
+      reader.readAsText(file);
+    });
 
-      for (const [di, dj] of directions[type]) {
-        const ni = i + di, nj = j + dj;
-        if (ni >= 0 && ni < 5 && nj >= 0 && nj < 5) {
-          const target = board[ni][nj];
-          if (!target || target[0] !== color) {
-            moves.push({ from: [i,j], to: [ni,nj], capture: !!target });
+    function showFileManager() {
+      const list = document.getElementById("fileList");
+      list.innerHTML = "";
+
+      Object.keys(files).forEach(name => {
+        const li = document.createElement("li");
+        li.style.marginBottom = "0.5em";
+
+        const span = document.createElement("span");
+        span.textContent = name;
+        span.style.marginRight = "1em";
+
+        const renameBtn = document.createElement("button");
+        renameBtn.textContent = "✏️";
+        renameBtn.onclick = () => {
+          const newName = prompt("Нова назва файлу:", name);
+          if (!newName || newName === name || files[newName]) return;
+          files[newName] = files[name];
+          delete files[name];
+          if (currentFile === name) currentFile = newName;
+          saveCurrent();
+          highlightActiveTab();
+          showFileManager();
+        };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "❌";
+        deleteBtn.style.marginLeft = "0.5em";
+        deleteBtn.onclick = () => {
+          if (!confirm(`Видалити файл "${name}"?`)) return;
+          delete files[name];
+          if (currentFile === name) {
+            const next = Object.keys(files)[0] || "Без назви";
+            files[next] ??= "";
+            currentFile = next;
+            note.value = files[currentFile];
           }
-        }
-      }
+          saveCurrent();
+          highlightActiveTab();
+          showFileManager();
+        };
 
-      return moves;
+        li.appendChild(span);
+        li.appendChild(renameBtn);
+        li.appendChild(deleteBtn);
+        list.appendChild(li);
+      });
+
+      document.getElementById("fileManager").style.display = "block";
     }
 
-    function pieceValue(type) {
-      return type === "Q" ? 9 : 1;
+    // Init
+    loadFromStorage();
+    updateLines();
+    if (localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light");
+      document.getElementById("themeToggle").checked = true;
     }
-
-    function getAllMoves() {
-      const all = [];
-      for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 5; j++) {
-          if (board[i][j]) {
-            const moves = getMoves(i,j);
-            if (moves.length) {
-              // Обрати найкращий хід (жадібно атакуючи ціннішу фігуру)
-              moves.sort((a, b) => {
-                const va = board[a.to[0]][a.to[1]];
-                const vb = board[b.to[0]][b.to[1]];
-                return (vb ? pieceValue(vb[1]) : 0) - (va ? pieceValue(va[1]) : 0);
-              });
-              all.push(moves[0]);
-            }
-          }
-        }
-      }
-      return all;
-    }
-
-    function evolvePawn(i, j) {
-      const piece = board[i][j];
-      if (piece && piece[1] === "P") {
-        if ((piece[0] === "w" && i === 0) || (piece[0] === "b" && i === 4)) {
-          board[i][j] = piece[0] + "Q";
-          statusEl.textContent = `🎉 ${piece[0] === "w" ? "Білий" : "Чорний"} пішак еволюціонував!`;
-        }
-      }
-    }
-
-    function step() {
-      const allMoves = getAllMoves();
-      if (allMoves.length === 0 || moveCount > 200) {
-        statusEl.textContent = "Гра завершилась!";
-        return;
-      }
-
-      const move = allMoves[Math.floor(Math.random() * allMoves.length)];
-      const [fi, fj] = move.from;
-      const [ti, tj] = move.to;
-      const piece = board[fi][fj];
-
-      board[ti][tj] = piece;
-      board[fi][fj] = null;
-
-      evolvePawn(ti, tj);
-      moveCount++;
-
-      render();
-      statusEl.textContent = `Хід ${moveCount}: ${piece} з [${fi},${fj}] на [${ti},${tj}]`;
-
-      setTimeout(step, 700);
-    }
-
-    render();
-    setTimeout(step, 1000);
   </script>
 </body>
 </html>
