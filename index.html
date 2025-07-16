@@ -3,194 +3,270 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Блокнот CodeMirror</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/lib/codemirror.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/theme/material-darker.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/hint/show-hint.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/lib/codemirror.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/javascript/javascript.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/css/css.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/xml/xml.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/edit/closebrackets.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/edit/closetag.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/hint/show-hint.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/hint/html-hint.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/hint/css-hint.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/hint/javascript-hint.min.js"></script>
+  <title>Блокнот</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
   <style>
     body {
       margin: 0;
-      font-family: monospace;
-      background: #1e1e1e;
-      color: #ddd;
-      height: 100vh;
+      font-family: sans-serif;
+      background: #121212;
+      color: #fff;
       display: flex;
       flex-direction: column;
+      height: 100vh;
     }
-    header {
-      background: #2c2c2c;
-      padding: 0.5em 1em;
+    .controls {
       display: flex;
+      flex-wrap: wrap;
+      padding: 5px;
+      gap: 5px;
+      background: #1e1e1e;
       justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
     }
-    .tabs {
-      display: flex;
-      flex-wrap: wrap;
-      background: #2c2c2c;
-      padding: 0.5em;
-    }
-    .tab {
-      background: #4CAF50;
-      color: white;
-      padding: 0.3em 0.8em;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-right: 0.5em;
-    }
-    .tab.active {
+    button, select, input[type="color"] {
+      padding: 5px;
+      font-size: 14px;
       background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 4px;
     }
-    .editor-wrapper {
+    #editorWrapper {
       flex: 1;
       display: flex;
-      flex-direction: column;
-      overflow: hidden;
     }
     .CodeMirror {
       flex: 1;
       height: 100%;
-      font-size: 16px;
     }
-    .controls {
-      background: #2c2c2c;
-      padding: 0.5em;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5em;
-    }
-    button, select, label {
-      background: linear-gradient(135deg, #4CAF50, #388E3C);
-      color: white;
-      border: none;
-      padding: 0.5em 1em;
-      font-size: 14px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    input[type="file"] {
+    #drawCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
       display: none;
-    }
-    @media (max-width: 768px) {
-      button, select, label {
-        font-size: 12px;
-        padding: 0.4em 0.6em;
-      }
-      header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
+      z-index: 999;
     }
   </style>
 </head>
 <body>
-  <header>
-    <strong>🧠 Блокнот</strong>
-    <div style="display: flex; gap: 0.5em; align-items: center;">
-      <label><input type="checkbox" id="themeToggle"> 🌙/🌞</label>
-      <select id="modeSelector">
-        <option value="htmlmixed">HTML</option>
-        <option value="css">CSS</option>
-        <option value="javascript">JavaScript</option>
-      </select>
-      <select id="fontSizeSelector">
-        <option value="14">14px</option>
-        <option value="16" selected>16px</option>
-        <option value="18">18px</option>
-        <option value="20">20px</option>
-      </select>
-    </div>
-  </header>
-  <div class="tabs" id="tabs"></div>
-  <div class="editor-wrapper">
-    <textarea id="editor"></textarea>
-  </div>
   <div class="controls">
-    <button onclick="startSelection()">🔲 Вибрати область</button>
-    <button onclick="saveScreenshot()">📸 Зберегти знімок</button>
-    <button onclick="exportZip()">📦 Експорт ZIP</button>
+    <button onclick="newFile()">➕ Новий</button>
+    <button onclick="saveCurrent()">💾 Зберегти</button>
+    <button onclick="document.getElementById('fileInput').click()">📂 Відкрити</button>
+    <button onclick="showFileManager()">📁 Менеджер</button>
+    <button onclick="openImageBackground()">🖼️ Фон</button>
+    <button onclick="runCode()">🚀 HTML</button>
     <button onclick="toggleDraw()">✏️ Малювати</button>
     <input type="color" id="colorPicker" value="#00ffff" style="display:none">
     <button id="clearBtn" onclick="clearCanvas()" style="display:none">🧹 Очистити</button>
-    <select id="actionMenu">
-      <option selected disabled>📂 Дії з файлом</option>
-      <option value="new">➕ Новий файл</option>
-      <option value="save">💾 Зберегти</option>
-      <option value="open">📂 Відкрити</option>
-      <option value="manager">📁 Менеджер файлів</option>
-      <option value="image">🖼️ Фон (зображення)</option>
-    </select>
-    <button onclick="runCode()">🚀 Переглянути як HTML</button>
+    <button onclick="saveDrawing()" id="saveDrawBtn" style="display:none">🧾 Зберегти малюнок</button>
     <input type="file" id="fileInput" accept=".txt" style="display:none" />
   </div>
-  <div id="fileManager" style="display:none; background:#333; padding:1em;">
-    <h3>📁 Менеджер файлів</h3>
-    <ul id="fileList"></ul>
-    <button onclick="document.getElementById('fileManager').style.display='none'">Закрити</button>
+
+  <div id="editorWrapper">
+    <textarea id="editor"></textarea>
   </div>
-  <canvas id="drawCanvas" style="position:absolute; top:0; left:0; z-index:10; display:none;"></canvas>
+  <canvas id="drawCanvas"></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/html-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/css-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/javascript-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
 
   <script>
-    const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
-      mode: "htmlmixed",
-      theme: "material-darker",
-      lineNumbers: true,
-      tabSize: 2,
-      lineWrapping: true,
-      autoCloseTags: true,
-      autoCloseBrackets: true,
-      extraKeys: { "Ctrl-Space": "autocomplete" }
-    });
-
-    document.getElementById("actionMenu").addEventListener("change", (e) => {
-      switch (e.target.value) {
-        case "new": newFile(); break;
-        case "save": saveCurrent(); break;
-        case "open": document.getElementById("fileInput").click(); break;
-        case "manager": showFileManager(); break;
-        case "image": openImageBackground(); break;
+    const editorExtraKeys = {
+      "Ctrl-Space": "autocomplete",
+      "'" : (cm) => {
+        cm.replaceSelection("''");
+        cm.execCommand("goCharLeft");
+      },
+      '"' : (cm) => {
+        cm.replaceSelection('""');
+        cm.execCommand("goCharLeft");
+      },
+      '(': (cm) => {
+        cm.replaceSelection("()");
+        cm.execCommand("goCharLeft");
+      },
+      '[': (cm) => {
+        cm.replaceSelection("[]");
+        cm.execCommand("goCharLeft");
+      },
+      '{': (cm) => {
+        cm.replaceSelection("{}");
+        cm.execCommand("goCharLeft");
       }
-      e.target.selectedIndex = 0;
-    });
+    };
+
+    let currentFile = null;
+    let editor;
+
+    window.onload = () => {
+      editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+        mode: "htmlmixed",
+        theme: "dracula",
+        lineNumbers: true,
+        lineWrapping: true,
+        autoCloseTags: true,
+        autoCloseBrackets: true,
+        extraKeys: editorExtraKeys
+      });
+
+      editor.on("inputRead", function(cm, change) {
+        if (change.text[0].match(/[\w<\"\']/)) {
+          cm.showHint();
+        }
+      });
+
+      const savedFiles = JSON.parse(localStorage.getItem('notepadFiles') || '{}');
+      const lastOpened = localStorage.getItem('lastOpenedFile');
+
+      if (lastOpened && savedFiles[lastOpened]) {
+        openFile(lastOpened);
+      } else if (Object.keys(savedFiles).length > 0) {
+        openFile(Object.keys(savedFiles)[0]);
+      } else {
+        newFile();
+      }
+    };
+
+    function newFile() {
+      editor.setValue("");
+      currentFile = `file_${Date.now()}`;
+    }
+
+    function saveCurrent() {
+      const files = JSON.parse(localStorage.getItem('notepadFiles') || '{}');
+      files[currentFile] = editor.getValue();
+      localStorage.setItem('notepadFiles', JSON.stringify(files));
+      localStorage.setItem('lastOpenedFile', currentFile);
+    }
+
+    function openFile(name) {
+      const files = JSON.parse(localStorage.getItem('notepadFiles') || '{}');
+      if (files[name]) {
+        editor.setValue(files[name]);
+        currentFile = name;
+        localStorage.setItem('lastOpenedFile', name);
+      }
+    }
+
+    function showFileManager() {
+      const files = JSON.parse(localStorage.getItem('notepadFiles') || '{}');
+      const names = Object.keys(files);
+      if (!names.length) return alert("Файлів не знайдено");
+      const choice = prompt("Оберіть файл:\n" + names.join("\n"));
+      if (choice && files[choice]) openFile(choice);
+    }
+
+    function runCode() {
+      const win = window.open();
+      win.document.write(editor.getValue());
+    }
 
     function openImageBackground() {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = "image/*";
-      input.style.display = "none";
-      document.body.appendChild(input);
-      input.onchange = (e) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = e => {
         const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function (ev) {
-          const url = ev.target.result;
-          const wrapper = editor.getWrapperElement();
-          wrapper.style.backgroundImage = `url('${url}')`;
-          wrapper.style.backgroundSize = "cover";
-          wrapper.style.backgroundPosition = "center";
-          wrapper.style.backgroundRepeat = "no-repeat";
-        };
-        reader.readAsDataURL(file);
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            document.querySelector(".CodeMirror").style.backgroundImage = `url('${reader.result}')`;
+            document.querySelector(".CodeMirror").style.backgroundSize = 'cover';
+          };
+          reader.readAsDataURL(file);
+        }
       };
       input.click();
     }
 
+    function saveDrawing() {
+      const canvas = document.getElementById("drawCanvas");
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = "drawing.png";
+      link.click();
+    }
+
     function toggleDraw() {
       const canvas = document.getElementById("drawCanvas");
-      canvas.style.display = canvas.style.display === "none" ? "block" : "none";
+      if (canvas.style.display === "none") {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.display = "block";
+        document.getElementById("clearBtn").style.display = "inline-block";
+        document.getElementById("colorPicker").style.display = "inline-block";
+        document.getElementById("saveDrawBtn").style.display = "inline-block";
+        enableDrawing();
+      } else {
+        canvas.style.display = "none";
+        document.getElementById("clearBtn").style.display = "none";
+        document.getElementById("colorPicker").style.display = "none";
+        document.getElementById("saveDrawBtn").style.display = "none";
+        disableDrawing();
+      }
+    }
+
+    let isDrawing = false;
+    let drawCtx;
+    let lastX = 0, lastY = 0;
+
+    function enableDrawing() {
+      const canvas = document.getElementById("drawCanvas");
+      drawCtx = canvas.getContext("2d");
+      drawCtx.lineWidth = 2;
+      drawCtx.lineCap = "round";
+      drawCtx.strokeStyle = document.getElementById("colorPicker").value;
+
+      canvas.addEventListener("mousedown", startDraw);
+      canvas.addEventListener("mousemove", draw);
+      canvas.addEventListener("mouseup", endDraw);
+      canvas.addEventListener("mouseout", endDraw);
+
+      document.getElementById("colorPicker").addEventListener("change", function() {
+        drawCtx.strokeStyle = this.value;
+      });
+    }
+
+    function disableDrawing() {
+      const canvas = document.getElementById("drawCanvas");
+      canvas.removeEventListener("mousedown", startDraw);
+      canvas.removeEventListener("mousemove", draw);
+      canvas.removeEventListener("mouseup", endDraw);
+      canvas.removeEventListener("mouseout", endDraw);
+    }
+
+    function startDraw(e) {
+      isDrawing = true;
+      [lastX, lastY] = [e.clientX, e.clientY];
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      drawCtx.beginPath();
+      drawCtx.moveTo(lastX, lastY);
+      drawCtx.lineTo(e.clientX, e.clientY);
+      drawCtx.stroke();
+      [lastX, lastY] = [e.clientX, e.clientY];
+    }
+
+    function endDraw() {
+      isDrawing = false;
+    }
+
+    function clearCanvas() {
+      const canvas = document.getElementById("drawCanvas");
+      drawCtx.clearRect(0, 0, canvas.width, canvas.height);
     }
   </script>
 </body>
