@@ -1,319 +1,196 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>📝 Блокнот Ultra</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Блокнот CodeMirror</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/lib/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/theme/material-darker.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/hint/show-hint.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/lib/codemirror.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/css/css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/xml/xml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/edit/closetag.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/hint/show-hint.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/hint/html-hint.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/hint/css-hint.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/hint/javascript-hint.min.js"></script>
   <style>
-    :root {
-      --bg: #1e1e1e;
-      --fg: #ddd;
-      --border: #444;
-      --highlight: #4CAF50;
-      --line: #2c2c2c;
-    }
-    body.light {
-      --bg: #ffffff;
-      --fg: #111;
-      --border: #ccc;
-      --highlight: #007acc;
-      --line: #f0f0f0;
-    }
-
     body {
       margin: 0;
-      background-color: var(--bg);
-      color: var(--fg);
       font-family: monospace;
+      background: #1e1e1e;
+      color: #ddd;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      height: 100vh;
     }
-
     header {
-      padding: 0.5em;
-      background: var(--line);
+      background: #2c2c2c;
+      padding: 0.5em 1em;
       display: flex;
-      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 0.5em;
-      font-weight: bold;
+      flex-wrap: wrap;
     }
-
     .tabs {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5em;
-      margin: 0.5em;
+      background: #2c2c2c;
+      padding: 0.5em;
     }
-
     .tab {
-      background: var(--highlight);
+      background: #4CAF50;
       color: white;
       padding: 0.3em 0.8em;
       border-radius: 4px;
       cursor: pointer;
+      margin-right: 0.5em;
     }
-
     .tab.active {
       background: #333;
     }
-
-    .controls {
-      display: flex;
-      gap: 0.5em;
-      flex-wrap: wrap;
-      margin: 0.5em;
-    }
-
-    .container {
-      display: flex;
+    .editor-wrapper {
       flex: 1;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
-      min-height: 0;
     }
-
-    .lines {
-      background-color: var(--line);
-      color: #888;
-      padding: 1em 0.5em;
-      text-align: right;
-      user-select: none;
-      font-size: 16px;
-      overflow-y: hidden;
-      white-space: pre;
-      line-height: 1.5em;
-    }
-
-    textarea {
+    .CodeMirror {
       flex: 1;
-      background-color: var(--bg);
-      color: var(--fg);
-      border: none;
-      resize: none;
-      padding: 1em;
+      height: 100%;
       font-size: 16px;
-      line-height: 1.5em;
-      font-family: monospace;
-      outline: none;
-      overflow-y: auto;
-      word-wrap: break-word;
-      white-space: pre-wrap;
     }
-
-    button, label, select {
-      background: var(--highlight);
+    .controls {
+      background: #2c2c2c;
+      padding: 0.5em;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5em;
+    }
+    button, select, label {
+      background: linear-gradient(135deg, #4CAF50, #388E3C);
       color: white;
       border: none;
-      padding: 0.4em 0.8em;
+      padding: 0.5em 1em;
       font-size: 14px;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
     }
-
     input[type="file"] {
       display: none;
     }
-
-    #fileManager {
-      margin: 0.5em;
-      padding: 1em;
-      background: var(--line);
-      border-radius: 8px;
-    }
-
-    @media (max-width: 600px) {
-      textarea { font-size: 14px; }
-      .lines { font-size: 14px; }
+    @media (max-width: 768px) {
+      button, select, label {
+        font-size: 12px;
+        padding: 0.4em 0.6em;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
 <body>
   <header>
-    <div>📝 <strong>Блокнот Ultra</strong></div>
-    <div>
+    <strong>🧠 Блокнот</strong>
+    <div style="display: flex; gap: 0.5em; align-items: center;">
       <label><input type="checkbox" id="themeToggle"> 🌙/🌞</label>
+      <select id="modeSelector">
+        <option value="htmlmixed">HTML</option>
+        <option value="css">CSS</option>
+        <option value="javascript">JavaScript</option>
+      </select>
       <select id="fontSizeSelector">
-        <option value="14">Шрифт: 14</option>
-        <option value="16" selected>16</option>
-        <option value="18">18</option>
-        <option value="20">20</option>
+        <option value="14">14px</option>
+        <option value="16" selected>16px</option>
+        <option value="18">18px</option>
+        <option value="20">20px</option>
       </select>
     </div>
   </header>
-
   <div class="tabs" id="tabs"></div>
-
-  <div class="container">
-    <div class="lines" id="lines">1</div>
-    <textarea id="note" spellcheck="true" placeholder="Пиши тут..."></textarea>
+  <div class="editor-wrapper">
+    <textarea id="editor"></textarea>
   </div>
-
   <div class="controls">
-    <button onclick="newFile()">➕ Новий файл</button>
-    <button onclick="saveCurrent()">📅 Зберегти</button>
-    <label for="fileInput">📂 Відкрити</label>
-    <input type="file" id="fileInput" accept=".txt" />
-    <button onclick="showFileManager()">📁 Менеджер файлів</button>
+    <button onclick="startSelection()">🔲 Вибрати область</button>
+    <button onclick="saveScreenshot()">📸 Зберегти знімок</button>
+    <button onclick="exportZip()">📦 Експорт ZIP</button>
+    <button onclick="toggleDraw()">✏️ Малювати</button>
+    <input type="color" id="colorPicker" value="#00ffff" style="display:none">
+    <button id="clearBtn" onclick="clearCanvas()" style="display:none">🧹 Очистити</button>
+    <select id="actionMenu">
+      <option selected disabled>📂 Дії з файлом</option>
+      <option value="new">➕ Новий файл</option>
+      <option value="save">💾 Зберегти</option>
+      <option value="open">📂 Відкрити</option>
+      <option value="manager">📁 Менеджер файлів</option>
+      <option value="image">🖼️ Фон (зображення)</option>
+    </select>
+    <button onclick="runCode()">🚀 Переглянути як HTML</button>
+    <input type="file" id="fileInput" accept=".txt" style="display:none" />
   </div>
-
-  <div id="fileManager" style="display:none;">
+  <div id="fileManager" style="display:none; background:#333; padding:1em;">
     <h3>📁 Менеджер файлів</h3>
     <ul id="fileList"></ul>
     <button onclick="document.getElementById('fileManager').style.display='none'">Закрити</button>
   </div>
+  <canvas id="drawCanvas" style="position:absolute; top:0; left:0; z-index:10; display:none;"></canvas>
 
   <script>
-    const note = document.getElementById("note");
-    const lines = document.getElementById("lines");
-    const tabs = document.getElementById("tabs");
-    const fontSizeSelector = document.getElementById("fontSizeSelector");
+    const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+      mode: "htmlmixed",
+      theme: "material-darker",
+      lineNumbers: true,
+      tabSize: 2,
+      lineWrapping: true,
+      autoCloseTags: true,
+      autoCloseBrackets: true,
+      extraKeys: { "Ctrl-Space": "autocomplete" }
+    });
 
-    let files = {};
-    let currentFile = "Без назви";
-
-    function updateLines() {
-      const count = note.value.split("\n").length;
-      const lineNumbers = [];
-      for (let i = 1; i <= count; i++) {
-        lineNumbers.push(i);
+    document.getElementById("actionMenu").addEventListener("change", (e) => {
+      switch (e.target.value) {
+        case "new": newFile(); break;
+        case "save": saveCurrent(); break;
+        case "open": document.getElementById("fileInput").click(); break;
+        case "manager": showFileManager(); break;
+        case "image": openImageBackground(); break;
       }
-      lines.textContent = lineNumbers.join("\n");
-    }
-
-    function switchTo(file) {
-      saveCurrent();
-      currentFile = file;
-      note.value = files[file] || "";
-      highlightActiveTab();
-      updateLines();
-    }
-
-    function highlightActiveTab() {
-      tabs.innerHTML = "";
-      Object.keys(files).forEach(name => {
-        const tab = document.createElement("div");
-        tab.className = "tab" + (name === currentFile ? " active" : "");
-        tab.textContent = name;
-        tab.onclick = () => switchTo(name);
-        tabs.appendChild(tab);
-      });
-    }
-
-    function newFile() {
-      const name = prompt("Назва нового файлу:");
-      if (!name || files[name]) return;
-      files[name] = "";
-      switchTo(name);
-    }
-
-    function saveCurrent() {
-      files[currentFile] = note.value;
-      localStorage.setItem("files", JSON.stringify(files));
-    }
-
-    function loadFromStorage() {
-      const saved = localStorage.getItem("files");
-      if (saved) {
-        files = JSON.parse(saved);
-        const first = Object.keys(files)[0];
-        if (first) switchTo(first);
-      } else {
-        files["Без назви"] = "";
-        switchTo("Без назви");
-      }
-    }
-
-    document.getElementById("themeToggle").addEventListener("change", e => {
-      document.body.classList.toggle("light", e.target.checked);
-      localStorage.setItem("theme", e.target.checked ? "light" : "dark");
+      e.target.selectedIndex = 0;
     });
 
-    fontSizeSelector.addEventListener("change", e => {
-      note.style.fontSize = e.target.value + "px";
-      lines.style.fontSize = e.target.value + "px";
-    });
-
-    note.addEventListener("input", () => {
-      updateLines();
-      saveCurrent();
-    });
-
-    note.addEventListener("scroll", () => {
-      lines.scrollTop = note.scrollTop;
-    });
-
-    document.getElementById("fileInput").addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        const name = file.name.replace(".txt", "");
-        files[name] = reader.result;
-        switchTo(name);
+    function openImageBackground() {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.style.display = "none";
+      document.body.appendChild(input);
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+          const url = ev.target.result;
+          const wrapper = editor.getWrapperElement();
+          wrapper.style.backgroundImage = `url('${url}')`;
+          wrapper.style.backgroundSize = "cover";
+          wrapper.style.backgroundPosition = "center";
+          wrapper.style.backgroundRepeat = "no-repeat";
+        };
+        reader.readAsDataURL(file);
       };
-      reader.readAsText(file);
-    });
-
-    function showFileManager() {
-      const list = document.getElementById("fileList");
-      list.innerHTML = "";
-
-      Object.keys(files).forEach(name => {
-        const li = document.createElement("li");
-        li.style.marginBottom = "0.5em";
-
-        const span = document.createElement("span");
-        span.textContent = name;
-        span.style.marginRight = "1em";
-
-        const renameBtn = document.createElement("button");
-        renameBtn.textContent = "✏️";
-        renameBtn.onclick = () => {
-          const newName = prompt("Нова назва файлу:", name);
-          if (!newName || newName === name || files[newName]) return;
-          files[newName] = files[name];
-          delete files[name];
-          if (currentFile === name) currentFile = newName;
-          saveCurrent();
-          highlightActiveTab();
-          showFileManager();
-        };
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "❌";
-        deleteBtn.style.marginLeft = "0.5em";
-        deleteBtn.onclick = () => {
-          if (!confirm(`Видалити файл "${name}"?`)) return;
-          delete files[name];
-          if (currentFile === name) {
-            const next = Object.keys(files)[0] || "Без назви";
-            files[next] ??= "";
-            currentFile = next;
-            note.value = files[currentFile];
-          }
-          saveCurrent();
-          highlightActiveTab();
-          showFileManager();
-        };
-
-        li.appendChild(span);
-        li.appendChild(renameBtn);
-        li.appendChild(deleteBtn);
-        list.appendChild(li);
-      });
-
-      document.getElementById("fileManager").style.display = "block";
+      input.click();
     }
 
-    // Init
-    loadFromStorage();
-    updateLines();
-    if (localStorage.getItem("theme") === "light") {
-      document.body.classList.add("light");
-      document.getElementById("themeToggle").checked = true;
+    function toggleDraw() {
+      const canvas = document.getElementById("drawCanvas");
+      canvas.style.display = canvas.style.display === "none" ? "block" : "none";
     }
   </script>
 </body>
