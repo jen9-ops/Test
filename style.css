@@ -1,6 +1,14 @@
 :root{
   --bg:#eef2f7; --primary:#1976d2; --primary-dark:#115293;
   --surface:#ffffff; --user:#c8e6c9; --bot:#e0e0e0; --radius:10px;
+  .badge{
+  background:#ffbc00;        /* можно поменять */
+  color:#000;
+  font-size:.8rem;
+  padding:2px 6px;
+  border-radius:var(--radius);
+  margin-left:8px;
+  }
 }
 *{box-sizing:border-box;font-family:"Segoe UI",Arial,sans-serif;}
 body{margin:0;display:flex;flex-direction:column;height:100vh;background:var(--bg);color:#333;}
