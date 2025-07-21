@@ -1,106 +1,116 @@
 <!DOCTYPE html><html lang="ru">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Генератор скриптов на основе HF Inference</title>
+  <meta charset="UTF-8">
+  <title>Расширенный многоуровневый ИИ на JavaScript</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#fafafa; padding:20px; }
-    .box { max-width:600px; margin:auto; background:#fff; padding:20px;
-           border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
-    .box label { display:block; margin:12px 0 4px; }
-    .box input[type="text"], .box textarea, .box select, .box button { width:100%; padding:8px; margin-bottom:8px; box-sizing:border-box; }
-    #editor { height: 200px; border:1px solid #ddd; border-radius:4px; margin-top:10px; }
-    .controls { display: flex; gap:10px; margin-top:10px; }
-    .controls > * { flex:1; }
-    .hidden { display: none; }
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f0f4f9; }
+    input, button { padding: 8px; }
+    .chat { margin-top: 20px; background-color: #fff; padding: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: 400px; overflow-y: auto; }
+    .message { margin-bottom: 10px; padding: 5px; border-radius: 5px; }
+    .user { background-color: #dcf8c6; align-self: flex-end; }
+    .bot { background-color: #ececec; align-self: flex-start; }
+    .chat-container { display: flex; flex-direction: column; }
+    .clear-btn { margin-left: 10px; }
   </style>
-  <!-- Ace Editor CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.11.2/ace.js" integrity="sha512-+GiXKP3jjxmclXKt5ydEmx64nkNykyBVy884hcXChzraJEjz/UNj4KfULtti6VyIwKHUr+T2D4XUl5SH2+NMog==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
-  <div class="box">
-    <h2>Генератор PS1/Batch скриптов</h2>
-    <label for="instruction">Инструкция (на русском):</label>
-    <textarea id="instruction" rows="3" placeholder="Например: выключить компьютер через 20 минут"></textarea><label for="lang">Выберите формат скрипта:</label>
-<select id="lang">
-  <option value="ps1">PowerShell (.ps1)</option>
-  <option value="bat">Batch (.bat)</option>
-</select>
+  <h2>Расширенный многоуровневый чат-бот (ИИ)</h2>
+  <input type="text" id="userInput" placeholder="Задай вопрос" size="50">
+  <button onclick="ask()">Отправить</button>
+  <button class="clear-btn" onclick="clearChat()">Очистить чат</button>
+  <div class="chat" id="chat"></div>  <script>
+    let knowledgeBase = JSON.parse(localStorage.getItem('knowledgeBase')) || [
+      {question: "привет", answer: "Привет! Чем могу помочь?"},
+      {question: "как дела", answer: "Всё прекрасно! А как у тебя?"},
+      {question: "кто ты", answer: "Я многоуровневый чат-бот на JavaScript, сохраняющий данные."},
+      {question: "что ты умеешь", answer: "Я отвечаю на вопросы, сохраняю новые знания и понимаю контекст."},
+      {question: "какой сегодня день", answer: () => `Сегодня: ${new Date().toLocaleDateString()}`},
+      {question: "сколько времени", answer: () => `Текущее время: ${new Date().toLocaleTimeString()}`}
+    ];
 
-<label for="hfToken">Hugging Face API Token:</label>
-<input id="hfToken" type="text" placeholder="xxxxxxxx-xxxx..." />
-
-<div class="controls">
-  <button id="gen">Сгенерировать</button>
-  <a id="download" class="hidden" style="text-align:center; padding:8px; background:#0078d4; color:#fff; text-decoration:none; border-radius:4px;">Скачать скрипт</a>
-</div>
-
-<div id="editor"># Сгенерированный скрипт появится здесь…</div>
-
-  </div>  <script>
-    const editor = ace.edit("editor");
-    editor.setTheme("ace/theme/chrome");
-    editor.session.setMode("ace/mode/powershell");
-    editor.setOptions({ fontSize: "14px", wrap: true, readOnly: true });
-
-    const instrEl = document.getElementById('instruction');
-    const langEl  = document.getElementById('lang');
-    const tokenEl = document.getElementById('hfToken');
-    const genBtn  = document.getElementById('gen');
-    const dlLink  = document.getElementById('download');
-
-    async function genScriptFetch(prompt, lang, token) {
-      const modelId = 'google/flan-t5-base';
-      const url = `https://api-inference.huggingface.co/models/${modelId}`;
-      const body = {
-        inputs: `# ${lang.toUpperCase()} script to: ${prompt}`,
-        parameters: { max_new_tokens: 64, temperature: 0.2 }
-      };
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Error ${res.status}: ${text}`);
-      }
-      const data = await res.json();
-      return data[0].generated_text.trim();
+    function similarity(s1, s2) {
+      const words1 = s1.split(/\s+/);
+      const words2 = s2.split(/\s+/);
+      const intersection = words1.filter(word => words2.includes(word));
+      return intersection.length / Math.max(words1.length, words2.length);
     }
 
-    genBtn.onclick = async () => {
-      const instr = instrEl.value.trim();
-      const lang  = langEl.value;
-      const token = tokenEl.value.trim();
-      if (!instr) { alert('Введите инструкцию'); return; }
-      if (!token) { alert('Введите HF токен'); return; }
+    function findBestMatch(query) {
+      let bestMatch = null;
+      let bestScore = 0;
 
-      genBtn.disabled = true;
-      genBtn.textContent = 'Генерируется…';
-      dlLink.classList.add('hidden');
+      knowledgeBase.forEach(entry => {
+        const score = similarity(query, entry.question);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = entry;
+        }
+      });
 
-      try {
-        const script = await genScriptFetch(instr, lang, token);
-        editor.session.setMode(lang === 'ps1' ? 'ace/mode/powershell' : 'ace/mode/batchfile');
-        editor.setValue(script, -1);
+      return bestScore > 0.3 ? bestMatch : null;
+    }
 
-        const blob = new Blob([script], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const ext = lang === 'ps1' ? 'ps1' : 'bat';
-        dlLink.href = url;
-        dlLink.download = `script.${ext}`;
-        dlLink.textContent = `📥 Скачать script.${ext}`;
-        dlLink.classList.remove('hidden');
-      } catch (e) {
-        alert('Ошибка: ' + e.message);
-      } finally {
-        genBtn.disabled = false;
-        genBtn.textContent = 'Сгенерировать';
+    function generateContextualAnswer(query) {
+      if (query.includes("помощь")) {
+        return "Расскажи подробнее, в чём именно нужна помощь.";
       }
-    };
+      if (query.includes("спасибо")) {
+        return "Всегда рад помочь! Если ещё что-то понадобится, спрашивай.";
+      }
+      if (query.includes("забыть")) {
+        knowledgeBase = [];
+        saveKnowledgeBase();
+        return "Я очистил память, теперь могу учиться заново.";
+      }
+      return null;
+    }
+
+    function saveKnowledgeBase() {
+      localStorage.setItem('knowledgeBase', JSON.stringify(knowledgeBase));
+    }
+
+    function learnNewInformation(question, answer) {
+      knowledgeBase.push({ question, answer });
+      saveKnowledgeBase();
+    }
+
+    function clearChat() {
+      document.getElementById("chat").innerHTML = "";
+    }
+
+    function ask() {
+      const userText = document.getElementById("userInput").value.toLowerCase();
+      const chat = document.getElementById("chat");
+
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user';
+      userMsg.textContent = `Ты: ${userText}`;
+      chat.appendChild(userMsg);
+
+      let botAnswer = generateContextualAnswer(userText);
+      const match = findBestMatch(userText);
+
+      if (!botAnswer) {
+        if (match) {
+          botAnswer = typeof match.answer === 'function' ? match.answer() : match.answer;
+        } else {
+          botAnswer = "Я этого не знаю. Можешь научить меня? Введи ответ в формате 'Вопрос - Ответ'.";
+        }
+      }
+
+      if (userText.includes(' - ')) {
+        const parts = userText.split(' - ');
+        learnNewInformation(parts[0].trim(), parts[1].trim());
+        botAnswer = "Спасибо, я запомнил новую информацию!";
+      }
+
+      const botMsg = document.createElement('div');
+      botMsg.className = 'message bot';
+      botMsg.textContent = `ИИ: ${botAnswer}`;
+      chat.appendChild(botMsg);
+
+      chat.scrollTop = chat.scrollHeight;
+      document.getElementById("userInput").value = "";
+    }
   </script></body>
 </html>
