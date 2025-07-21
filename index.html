@@ -2,17 +2,16 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Генератор PS1/Batch скриптов</title>
+  <title>Генератор скриптов на основе HF Inference</title>
   <style>
     body { font-family: Arial, sans-serif; background:#fafafa; padding:20px; }
     .box { max-width:600px; margin:auto; background:#fff; padding:20px;
            border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
     .box label { display:block; margin:12px 0 4px; }
-    .box textarea, .box select, .box button, .box input[type="checkbox"] { width:100%; padding:8px; box-sizing:border-box; }
-    #editor { height: 250px; border:1px solid #ddd; border-radius:4px; margin-top:10px; }
+    .box input[type="text"], .box textarea, .box select, .box button { width:100%; padding:8px; margin-bottom:8px; box-sizing:border-box; }
+    #editor { height: 200px; border:1px solid #ddd; border-radius:4px; margin-top:10px; }
     .controls { display: flex; gap:10px; margin-top:10px; }
     .controls > * { flex:1; }
-    .inline { display: inline-block; width: auto; margin-right: 10px; }
     .hidden { display: none; }
   </style>
   <!-- Ace Editor CDN -->
@@ -20,96 +19,87 @@
 </head>
 <body>
   <div class="box">
-    <h2>Генератор PS1/Batch скриптов</h2><label for="commands">Введите команды (одна команда на строку):</label>
-<textarea id="commands" rows="5" placeholder="Например:\nGet-Process\nStop-Computer -Force"></textarea>
-
-<label for="lang">Выберите формат скрипта:</label>
+    <h2>Генератор PS1/Batch скриптов</h2>
+    <label for="instruction">Инструкция (на русском):</label>
+    <textarea id="instruction" rows="3" placeholder="Например: выключить компьютер через 20 минут"></textarea><label for="lang">Выберите формат скрипта:</label>
 <select id="lang">
   <option value="ps1">PowerShell (.ps1)</option>
   <option value="bat">Batch (.bat)</option>
 </select>
 
-<label class="inline"><input type="checkbox" id="compileExe" /> Компилировать в .exe</label>
+<label for="hfToken">Hugging Face API Token:</label>
+<input id="hfToken" type="text" placeholder="xxxxxxxx-xxxx..." />
 
 <div class="controls">
   <button id="gen">Сгенерировать</button>
-  <a id="downloadScript" class="hidden" style="text-align:center; padding:8px; background:#0078d4; color:#fff; text-decoration:none; border-radius:4px;">Скачать скрипт</a>
-  <a id="downloadExe" class="hidden" style="text-align:center; padding:8px; background:#28a745; color:#fff; text-decoration:none; border-radius:4px;">Скачать .exe</a>
+  <a id="download" class="hidden" style="text-align:center; padding:8px; background:#0078d4; color:#fff; text-decoration:none; border-radius:4px;">Скачать скрипт</a>
 </div>
 
-<div id="editor"># Ваш скрипт появится здесь…</div>
+<div id="editor"># Сгенерированный скрипт появится здесь…</div>
 
   </div>  <script>
-    // Endpoint реального сервиса компиляции
-    const COMPILE_API = 'https://compile-service.example.com/api/compile';
-
-    // Инициализация Ace
     const editor = ace.edit("editor");
     editor.setTheme("ace/theme/chrome");
     editor.session.setMode("ace/mode/powershell");
-    editor.setOptions({ fontSize: "14px", wrap: true, showPrintMargin: false });
+    editor.setOptions({ fontSize: "14px", wrap: true, readOnly: true });
 
-    const cmdArea     = document.getElementById('commands');
-    const langSelect  = document.getElementById('lang');
-    const compileChk  = document.getElementById('compileExe');
-    const genBtn      = document.getElementById('gen');
-    const dlScript    = document.getElementById('downloadScript');
-    const dlExe       = document.getElementById('downloadExe');
+    const instrEl = document.getElementById('instruction');
+    const langEl  = document.getElementById('lang');
+    const tokenEl = document.getElementById('hfToken');
+    const genBtn  = document.getElementById('gen');
+    const dlLink  = document.getElementById('download');
 
-    function aceMode(lang) {
-      return lang === 'ps1' ? "ace/mode/powershell" : "ace/mode/batchfile";
+    async function genScriptFetch(prompt, lang, token) {
+      const modelId = 'google/flan-t5-base';
+      const url = `https://api-inference.huggingface.co/models/${modelId}`;
+      const body = {
+        inputs: `# ${lang.toUpperCase()} script to: ${prompt}`,
+        parameters: { max_new_tokens: 64, temperature: 0.2 }
+      };
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Error ${res.status}: ${text}`);
+      }
+      const data = await res.json();
+      return data[0].generated_text.trim();
     }
 
     genBtn.onclick = async () => {
-      const commands = cmdArea.value.trim();
-      const lang     = langSelect.value;
-      const compile  = compileChk.checked;
+      const instr = instrEl.value.trim();
+      const lang  = langEl.value;
+      const token = tokenEl.value.trim();
+      if (!instr) { alert('Введите инструкцию'); return; }
+      if (!token) { alert('Введите HF токен'); return; }
 
-      if (!commands) {
-        alert('Введите хотя бы одну команду');
-        return;
-      }
+      genBtn.disabled = true;
+      genBtn.textContent = 'Генерируется…';
+      dlLink.classList.add('hidden');
 
-      // Генерация скрипта
-      let script = '';
-      if (lang === 'ps1') {
-        script = commands.split(/\r?\n/).join('\n');
-      } else {
-        script = '@echo off\n' + commands.split(/\r?\n/).join('\n');
-      }
+      try {
+        const script = await genScriptFetch(instr, lang, token);
+        editor.session.setMode(lang === 'ps1' ? 'ace/mode/powershell' : 'ace/mode/batchfile');
+        editor.setValue(script, -1);
 
-      // Показываем скрипт в редакторе
-      editor.session.setMode(aceMode(lang));
-      editor.setValue(script, -1);
-
-      // Ссылка на скачивание скрипта
-      const blob = new Blob([script], { type: 'text/plain;charset=utf-8' });
-      const url  = URL.createObjectURL(blob);
-      dlScript.href         = url;
-      dlScript.download     = `script.${lang}`;
-      dlScript.textContent  = '📥 Скачать скрипт';
-      dlScript.classList.remove('hidden');
-
-      // Если требуется компиляция
-      if (compile) {
-        try {
-          const res = await fetch(COMPILE_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ script, lang })
-          });
-          if (!res.ok) throw new Error(`Ошибка сервера: ${res.status}`);
-          const blobExe = await res.blob();
-          const exeUrl   = URL.createObjectURL(blobExe);
-          dlExe.href       = exeUrl;
-          dlExe.download   = 'script.exe';
-          dlExe.textContent= '📥 Скачать .exe';
-          dlExe.classList.remove('hidden');
-        } catch (e) {
-          alert('Компиляция не удалась: ' + e.message);
-        }
-      } else {
-        dlExe.classList.add('hidden');
+        const blob = new Blob([script], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const ext = lang === 'ps1' ? 'ps1' : 'bat';
+        dlLink.href = url;
+        dlLink.download = `script.${ext}`;
+        dlLink.textContent = `📥 Скачать script.${ext}`;
+        dlLink.classList.remove('hidden');
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
+      } finally {
+        genBtn.disabled = false;
+        genBtn.textContent = 'Сгенерировать';
       }
     };
   </script></body>
