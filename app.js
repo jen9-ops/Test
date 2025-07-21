@@ -1,3 +1,27 @@
+
+/* …весь код, который был раньше, оставляем без изменений … */
+
+/* замена классов d-none ↔ d-flex */
+function hideSections(){
+  trainText.classList.add('d-none');
+  trainURL.classList.add('d-none');
+}
+function showTrainText(){
+  hideSections();
+  trainText.classList.remove('d-none');
+}
+function showTrainURL(){
+  hideSections();
+  trainURL.classList.remove('d-none');
+}
+/* переключаем тему */
+function toggleTheme(){ document.body.classList.toggle('dark'); }
+
+/* экспортируем новые функции для меню */
+Object.assign(window,{showTrainText,showTrainURL,showAnalysis,
+                      exportData,importData,trainFromText,
+                      trainFromURL,clearChat,ask,toggleTheme});
+
 /* ===== Шаблоны PowerShell ===== */
 const templates = [
   {pattern:/создать vhdx (?<size>\d+(?:gb|mb)) в (?<path>.+)/i,
