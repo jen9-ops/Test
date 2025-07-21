@@ -1,139 +1,75 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Создание виртуального диска</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Генератор PowerShell-скриптов</title>
   <style>
-    /* Базовая стилизация */
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f5f5f5;
-    }
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 20px;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-    }
-    .form-group {
-      margin-bottom: 16px;
-      display: flex;
-      flex-direction: column;
-    }
-    label {
-      margin-bottom: 4px;
-      font-weight: bold;
-    }
-    input[type="text"],
-    input[type="number"],
-    select {
-      padding: 8px;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .checkbox-group {
-      display: flex;
-      align-items: center;
-    }
-    .checkbox-group label {
-      margin-left: 8px;
-      font-weight: normal;
-    }
-    button {
-      padding: 10px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 4px;
-      background: #0078d7;
-      color: #fff;
-      cursor: pointer;
-      width: 100%;
-    }
-    button:active {
-      background: #005a9e;
-    }
-    #status {
-      margin-top: 20px;
-      padding: 10px;
-      min-height: 40px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background: #fafafa;
-    }
-
-    /* Адаптивность */
-    @media (max-width: 480px) {
-      .container {
-        margin: 20px;
-        padding: 16px;
-      }
-    }
+    body { font-family: Arial, sans-serif; background:#fafafa; padding:20px; }
+    .box { max-width:400px; margin:auto; background:#fff; padding:20px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+    .box label { display:block; margin:12px 0 4px; }
+    .box input, .box button, .box textarea { width:100%; padding:8px; box-sizing:border-box; }
+    .box button { margin-top:10px; cursor:pointer; }
+    pre { background:#272822; color:#f8f8f2; padding:10px; overflow-x:auto; border-radius:4px; }
   </style>
 </head>
 <body>
+  <div class="box">
+    <h2>Генератор PowerShell-скриптов</h2>
+    <label for="cmd">Введите команду (напр., «выключить компьютер через 20 минут»)</label>
+    <input id="cmd" type="text" placeholder="ваша команда…" />
 
-  <div class="container">
-    <h2>Создать виртуальный диск</h2>
+    <button id="gen">Сгенерировать скрипт</button>
 
-    <div class="form-group">
-      <label for="diskPath">Путь для создания диска</label>
-      <input type="text" id="diskPath" placeholder="Например: D:\Disks\MyDisk.vhdx" />
-    </div>
-
-    <div class="form-group">
-      <label for="diskSize">Размер диска (ГБ)</label>
-      <input type="number" id="diskSize" min="1" placeholder="Введите размер в гигабайтах" />
-    </div>
-
-    <div class="form-group">
-      <label for="diskType">Тип диска</label>
-      <select id="diskType">
-        <option value="fixed">Fixed (фиксированный)</option>
-        <option value="dynamic">Dynamic (динамический)</option>
-      </select>
-    </div>
-
-    <div class="form-group checkbox-group">
-      <input type="checkbox" id="enableBitlocker" />
-      <label for="enableBitlocker">Включить BitLocker</label>
-    </div>
-
-    <button id="createBtn">Создать</button>
-
-    <div id="status">
-      <!-- Здесь будет отображаться ход создания диска -->
-    </div>
+    <h3>Результат</h3>
+    <pre id="out">// скрипт появится здесь</pre>
+    <a id="download" style="display:none; margin-top:8px; display:block;">📥 Скачать .ps1</a>
   </div>
 
   <script>
-    // Заготовки для логики создания (пока без реализации)
-    const btn = document.getElementById('createBtn');
-    const statusDiv = document.getElementById('status');
+    const cmdInput = document.getElementById('cmd');
+    const outPre   = document.getElementById('out');
+    const dlLink   = document.getElementById('download');
 
-    btn.addEventListener('click', () => {
-      const path = document.getElementById('diskPath').value;
-      const size = document.getElementById('diskSize').value;
-      const type = document.getElementById('diskType').value;
-      const bitlocker = document.getElementById('enableBitlocker').checked;
+    document.getElementById('gen').onclick = () => {
+      const text = cmdInput.value.trim().toLowerCase();
+      let script = `# Сгенерировано автоматически\n`;
+      let blob, url;
 
-      // TODO: добавить логику создания виртуального диска
-      statusDiv.textContent = `Запуск создания диска:
-        Путь: ${path},
-        Размер: ${size} ГБ,
-        Тип: ${type},
-        BitLocker: ${bitlocker ? 'Да' : 'Нет'}`;
-    });
+      // выключение
+      let m;
+      if (m = text.match(/выключить.*через\s*(\d+)\s*мин/)) {
+        const secs = parseInt(m[1],10)*60;
+        script += `Start-Sleep -Seconds ${secs}\n`;
+        script += `Stop-Computer -Force`;
+      }
+      // перезагрузка
+      else if (m = text.match(/перезагрузить.*через\s*(\d+)\s*мин/)) {
+        const secs = parseInt(m[1],10)*60;
+        script += `Start-Sleep -Seconds ${secs}\n`;
+        script += `Restart-Computer -Force`;
+      }
+      // гибернация
+      else if (m = text.match(/гибернац.*через\s*(\d+)\s*мин/)) {
+        const secs = parseInt(m[1],10)*60;
+        script += `Start-Sleep -Seconds ${secs}\n`;
+        script += `shutdown.exe /h`;
+      }
+      else {
+        script = `# Не удалось распознать команду.\n# Поддерживаются:\n# • «выключить компьютер через N минут»\n# • «перезагрузить компьютер через N минут»\n# • «гибернация через N минут»`;
+      }
+
+      // показать скрипт
+      outPre.textContent = script;
+
+      // подготовить ссылку для скачивания
+      blob = new Blob([script], { type: 'text/plain;charset=utf-8' });
+      url  = URL.createObjectURL(blob);
+      dlLink.href     = url;
+      dlLink.download = 'generated.ps1';
+      dlLink.textContent = '📥 Скачать generated.ps1';
+      dlLink.style.display = 'block';
+    };
   </script>
-
 </body>
 </html>
