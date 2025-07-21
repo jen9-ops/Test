@@ -1,113 +1,116 @@
-<!DOCTYPE html>
-<html lang="ru">
+<!DOCTYPE html><html lang="ru">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Генератор скриптов с редактором</title>
+  <title>Генератор PS1/Batch скриптов</title>
   <style>
     body { font-family: Arial, sans-serif; background:#fafafa; padding:20px; }
     .box { max-width:600px; margin:auto; background:#fff; padding:20px;
            border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
     .box label { display:block; margin:12px 0 4px; }
-    .box input, .box select, .box button { width:100%; padding:8px; box-sizing:border-box; }
-    #editor { height: 300px; border:1px solid #ddd; border-radius:4px; margin-top:10px; }
+    .box textarea, .box select, .box button, .box input[type="checkbox"] { width:100%; padding:8px; box-sizing:border-box; }
+    #editor { height: 250px; border:1px solid #ddd; border-radius:4px; margin-top:10px; }
     .controls { display: flex; gap:10px; margin-top:10px; }
     .controls > * { flex:1; }
+    .inline { display: inline-block; width: auto; margin-right: 10px; }
+    .hidden { display: none; }
   </style>
-  <!-- Ace Editor from CDN -->
+  <!-- Ace Editor CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.11.2/ace.js" integrity="sha512-+GiXKP3jjxmclXKt5ydEmx64nkNykyBVy884hcXChzraJEjz/UNj4KfULtti6VyIwKHUr+T2D4XUl5SH2+NMog==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
   <div class="box">
-    <h2>Генератор скриптов</h2>
+    <h2>Генератор PS1/Batch скриптов</h2><label for="commands">Введите команды (одна команда на строку):</label>
+<textarea id="commands" rows="5" placeholder="Например:\nGet-Process\nStop-Computer -Force"></textarea>
 
-    <label for="cmd">Команда (напр., «выключить компьютер через 20 минут»)</label>
-    <input id="cmd" type="text" placeholder="ваша команда…" />
+<label for="lang">Выберите формат скрипта:</label>
+<select id="lang">
+  <option value="ps1">PowerShell (.ps1)</option>
+  <option value="bat">Batch (.bat)</option>
+</select>
 
-    <label for="lang">Выберите язык/формат скрипта:</label>
-    <select id="lang">
-      <option value="ps1">PowerShell (.ps1)</option>
-      <option value="bat">Batch (.bat)</option>
-      <option value="js">JavaScript (.js)</option>
-      <option value="html">HTML (.html)</option>
-      <option value="css">CSS (.css)</option>
-    </select>
+<label class="inline"><input type="checkbox" id="compileExe" /> Компилировать в .exe</label>
 
-    <div class="controls">
-      <button id="gen">Сгенерировать</button>
-      <a id="download" style="display:none; text-align:center; padding:8px; background:#0078d4; color:#fff; text-decoration:none; border-radius:4px;">Скачать</a>
-    </div>
+<div class="controls">
+  <button id="gen">Сгенерировать</button>
+  <a id="downloadScript" class="hidden" style="text-align:center; padding:8px; background:#0078d4; color:#fff; text-decoration:none; border-radius:4px;">Скачать скрипт</a>
+  <a id="downloadExe" class="hidden" style="text-align:center; padding:8px; background:#28a745; color:#fff; text-decoration:none; border-radius:4px;">Скачать .exe</a>
+</div>
 
-    <div id="editor"># Здесь появится ваш скрипт…</div>
-  </div>
+<div id="editor"># Ваш скрипт появится здесь…</div>
 
-  <script>
+  </div>  <script>
+    // Endpoint реального сервиса компиляции
+    const COMPILE_API = 'https://compile-service.example.com/api/compile';
+
     // Инициализация Ace
     const editor = ace.edit("editor");
     editor.setTheme("ace/theme/chrome");
     editor.session.setMode("ace/mode/powershell");
-    editor.setOptions({ fontSize: "14px", wrap: true });
+    editor.setOptions({ fontSize: "14px", wrap: true, showPrintMargin: false });
 
-    const cmdInput = document.getElementById('cmd');
-    const langSelect = document.getElementById('lang');
-    const genBtn = document.getElementById('gen');
-    const dlLink = document.getElementById('download');
-
-    function getScript(text, lang) {
-      let m, secs, script;
-      const minutes = (n) => parseInt(n,10)*60;
-      if (m = text.match(/выключить.*через\s*(\d+)\s*мин/)) {
-        secs = minutes(m[1]);
-        switch(lang) {
-          case 'ps1':
-            return `Start-Sleep -Seconds ${secs}\nStop-Computer -Force`;
-          case 'bat':
-            return `@echo off\ntimeout /t ${secs} /nobreak >nul\nshutdown /s /f`;
-          case 'js':
-            return `setTimeout(function() {\n  /* здесь никакого shutdown в JS нет */\n  alert("Время истекло!");\n}, ${secs}000);`;
-          case 'html':
-            return `<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>Таймер</title>\n<script>\n${getScript(text,'js')}\n</script>\n</head><body>\n<p>Окно уведомления через ${m[1]} мин.</p>\n</body></html>`;
-          case 'css':
-            return `/* CSS не поддерживает таймеры на стороне клиента */\n/* Возможно, вы хотели JS или PS1 */`;
-        }
-      }
-      else {
-        // Не распознано
-        return {
-          ps1: `# Не удалось распознать команду\n`,
-          bat: `@echo off\necho Не удалось распознать команду\npause`,
-          js: `// Не удалось распознать команду`,
-          html: `<!-- Не удалось распознать команду -->`,
-          css: `/* Не удалось распознать команду */`
-        }[lang];
-      }
-    }
+    const cmdArea     = document.getElementById('commands');
+    const langSelect  = document.getElementById('lang');
+    const compileChk  = document.getElementById('compileExe');
+    const genBtn      = document.getElementById('gen');
+    const dlScript    = document.getElementById('downloadScript');
+    const dlExe       = document.getElementById('downloadExe');
 
     function aceMode(lang) {
-      return {
-        ps1: "ace/mode/powershell",
-        bat: "ace/mode/batchfile",
-        js: "ace/mode/javascript",
-        html:"ace/mode/html",
-        css:"ace/mode/css"
-      }[lang];
+      return lang === 'ps1' ? "ace/mode/powershell" : "ace/mode/batchfile";
     }
 
-    genBtn.onclick = () => {
-      const text = cmdInput.value.trim().toLowerCase();
-      const lang = langSelect.value;
-      const script = getScript(text, lang);
-      editor.session.setMode(aceMode(lang));
-      editor.setValue(typeof script==='string'? script : script.trim(), -1);
+    genBtn.onclick = async () => {
+      const commands = cmdArea.value.trim();
+      const lang     = langSelect.value;
+      const compile  = compileChk.checked;
 
-      // подготовка ссылки скачивания
-      const blob = new Blob([editor.getValue()], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      dlLink.href = url;
-      dlLink.download = `script.${lang === 'ps1'?'ps1':lang}`;
-      dlLink.style.display = 'inline-block';
-      dlLink.textContent = `📥 Скачать script.${lang === 'ps1'?'ps1':lang}`;
+      if (!commands) {
+        alert('Введите хотя бы одну команду');
+        return;
+      }
+
+      // Генерация скрипта
+      let script = '';
+      if (lang === 'ps1') {
+        script = commands.split(/\r?\n/).join('\n');
+      } else {
+        script = '@echo off\n' + commands.split(/\r?\n/).join('\n');
+      }
+
+      // Показываем скрипт в редакторе
+      editor.session.setMode(aceMode(lang));
+      editor.setValue(script, -1);
+
+      // Ссылка на скачивание скрипта
+      const blob = new Blob([script], { type: 'text/plain;charset=utf-8' });
+      const url  = URL.createObjectURL(blob);
+      dlScript.href         = url;
+      dlScript.download     = `script.${lang}`;
+      dlScript.textContent  = '📥 Скачать скрипт';
+      dlScript.classList.remove('hidden');
+
+      // Если требуется компиляция
+      if (compile) {
+        try {
+          const res = await fetch(COMPILE_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ script, lang })
+          });
+          if (!res.ok) throw new Error(`Ошибка сервера: ${res.status}`);
+          const blobExe = await res.blob();
+          const exeUrl   = URL.createObjectURL(blobExe);
+          dlExe.href       = exeUrl;
+          dlExe.download   = 'script.exe';
+          dlExe.textContent= '📥 Скачать .exe';
+          dlExe.classList.remove('hidden');
+        } catch (e) {
+          alert('Компиляция не удалась: ' + e.message);
+        }
+      } else {
+        dlExe.classList.add('hidden');
+      }
     };
-  </script>
-</body>
+  </script></body>
 </html>
