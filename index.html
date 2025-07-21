@@ -1,22 +1,31 @@
-<!DOCTYPE html><html lang="ru">
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Hyper-Bot 🎓</title>
-<header>
-  <h1>Hyper-Bot 🎓 <span id="progress" class="badge">0 %</span></h1>
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- Favicon -->
-  <link rel="icon" href="ico.ico" type="image/x-icon">
-  <!-- Styles -->
-  <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.min.js"></script>
+
+  <!-- запрет pinch-zoom -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0,
+                 maximum-scale=1.0, user-scalable=no" />
+
+  <!-- favicon + стили -->
+  <link rel="icon" href="icon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- компактный GPT-2 через CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.min.js"></script>
 </head>
 <body>
+  <!-- ╔══ HEADER ══╗ -->
   <header>
-    
+    <h1>Hyper-Bot 🎓 <span id="progress" class="badge">0 %</span></h1>
+
     <details>
-      <summary class="hamburger" aria-label="Меню"><span></span><span></span><span></span></summary>
+      <summary class="hamburger" aria-label="Меню">
+        <span></span><span></span><span></span>
+      </summary>
+
       <div class="menu">
         <button onclick="showTrainText()">Обучить по тексту</button>
         <button onclick="showTrainURL()">Обучить по URL</button>
@@ -24,28 +33,41 @@
         <button onclick="exportData()">Скачать память</button>
         <button onclick="document.getElementById('fileInput').click()">Загрузить память</button>
         <button onclick="clearChat()">Очистить чат</button>
+        <button onclick="toggleTheme()">Тёмная тема</button>
       </div>
     </details>
-  </header> 
+  </header>
+
+  <!-- ╔══ MAIN ══╗ -->
   <main>
+    <!-- обучение текстом -->
     <section id="trainText" class="hidden">
       <textarea id="textInput" placeholder="Вставь текст для обучения…"></textarea>
-      <button class="send" onclick="trainFromText();hideSections();">Обучить</button>
-    </section><section id="trainURL" class="hidden url-section">
-  <input id="urlInput" placeholder="Вставь URL для обучения">
-  <button class="send" onclick="trainFromURL();hideSections();">Загрузить URL</button>
-</section>
+      <button class="send" onclick="trainFromText(); hideSections();">Обучить</button>
+    </section>
 
-<div id="chat"></div>
+    <!-- обучение URL -->
+    <section id="trainURL" class="hidden url-section">
+      <input id="urlInput" placeholder="Вставь URL для обучения" />
+      <button class="send" onclick="trainFromURL(); hideSections();">Загрузить URL</button>
+    </section>
 
-<div class="input-bar">
-  <input id="userInput" placeholder="Напиши сообщение…" onkeydown="if(event.key==='Enter'){ask();}">
-  <button class="send" onclick="ask()">➤</button>
-</div>
+    <!-- чат -->
+    <div id="chat"></div>
+
+    <!-- строка ввода -->
+    <div class="input-bar">
+      <input id="userInput" placeholder="Напиши сообщение…"
+             onkeydown="if(event.key==='Enter'){ask();}" />
+      <button class="send" onclick="ask()">➤</button>
+    </div>
   </main>
-  <input type="file" id="fileInput" accept="application/json" class="hidden" onchange="importData(event)"> 
 
+  <!-- импорт резервной памяти -->
+  <input id="fileInput" type="file" accept="application/json"
+         class="hidden" onchange="importData(event)" />
+
+  <!-- логика бота -->
   <script src="app.js"></script>
-  <script src="progress.js"></script>
 </body>
 </html>
