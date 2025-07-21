@@ -1,273 +1,139 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Блокнот</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Создание виртуального диска</title>
   <style>
+    /* Базовая стилизация */
     body {
+      font-family: Arial, sans-serif;
       margin: 0;
-      font-family: sans-serif;
-      background: #121212;
-      color: #fff;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       display: flex;
       flex-direction: column;
-      height: 100vh;
     }
-    .controls {
+    .form-group {
+      margin-bottom: 16px;
       display: flex;
-      flex-wrap: wrap;
-      padding: 5px;
-      gap: 5px;
-      background: #1e1e1e;
-      justify-content: space-between;
+      flex-direction: column;
     }
-    button, select, input[type="color"] {
-      padding: 5px;
-      font-size: 14px;
-      background: #333;
-      color: #fff;
-      border: 1px solid #555;
+    label {
+      margin-bottom: 4px;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="number"],
+    select {
+      padding: 8px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
       border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
     }
-    #editorWrapper {
-      flex: 1;
+    .checkbox-group {
       display: flex;
+      align-items: center;
     }
-    .CodeMirror {
-      flex: 1;
-      height: 100%;
+    .checkbox-group label {
+      margin-left: 8px;
+      font-weight: normal;
     }
-    #drawCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      display: none;
-      z-index: 999;
+    button {
+      padding: 10px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 4px;
+      background: #0078d7;
+      color: #fff;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:active {
+      background: #005a9e;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 10px;
+      min-height: 40px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fafafa;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 480px) {
+      .container {
+        margin: 20px;
+        padding: 16px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="controls">
-    <button onclick="newFile()">➕ Новий</button>
-    <button onclick="saveCurrent()">💾 Зберегти</button>
-    <button onclick="document.getElementById('fileInput').click()">📂 Відкрити</button>
-    <button onclick="showFileManager()">📁 Менеджер</button>
-    <button onclick="openImageBackground()">🖼️ Фон</button>
-    <button onclick="runCode()">🚀 HTML</button>
-    <button onclick="toggleDraw()">✏️ Малювати</button>
-    <input type="color" id="colorPicker" value="#00ffff" style="display:none">
-    <button id="clearBtn" onclick="clearCanvas()" style="display:none">🧹 Очистити</button>
-    <button onclick="saveDrawing()" id="saveDrawBtn" style="display:none">🧾 Зберегти малюнок</button>
-    <input type="file" id="fileInput" accept=".txt" style="display:none" />
-  </div>
 
-  <div id="editorWrapper">
-    <textarea id="editor"></textarea>
-  </div>
-  <canvas id="drawCanvas"></canvas>
+  <div class="container">
+    <h2>Создать виртуальный диск</h2>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/html-hint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/css-hint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/javascript-hint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <div class="form-group">
+      <label for="diskPath">Путь для создания диска</label>
+      <input type="text" id="diskPath" placeholder="Например: D:\Disks\MyDisk.vhdx" />
+    </div>
+
+    <div class="form-group">
+      <label for="diskSize">Размер диска (ГБ)</label>
+      <input type="number" id="diskSize" min="1" placeholder="Введите размер в гигабайтах" />
+    </div>
+
+    <div class="form-group">
+      <label for="diskType">Тип диска</label>
+      <select id="diskType">
+        <option value="fixed">Fixed (фиксированный)</option>
+        <option value="dynamic">Dynamic (динамический)</option>
+      </select>
+    </div>
+
+    <div class="form-group checkbox-group">
+      <input type="checkbox" id="enableBitlocker" />
+      <label for="enableBitlocker">Включить BitLocker</label>
+    </div>
+
+    <button id="createBtn">Создать</button>
+
+    <div id="status">
+      <!-- Здесь будет отображаться ход создания диска -->
+    </div>
+  </div>
 
   <script>
-    const editorExtraKeys = {
-      "Ctrl-Space": "autocomplete",
-      "'" : (cm) => {
-        cm.replaceSelection("''");
-        cm.execCommand("goCharLeft");
-      },
-      '"' : (cm) => {
-        cm.replaceSelection('""');
-        cm.execCommand("goCharLeft");
-      },
-      '(': (cm) => {
-        cm.replaceSelection("()");
-        cm.execCommand("goCharLeft");
-      },
-      '[': (cm) => {
-        cm.replaceSelection("[]");
-        cm.execCommand("goCharLeft");
-      },
-      '{': (cm) => {
-        cm.replaceSelection("{}");
-        cm.execCommand("goCharLeft");
-      }
-    };
+    // Заготовки для логики создания (пока без реализации)
+    const btn = document.getElementById('createBtn');
+    const statusDiv = document.getElementById('status');
 
-    let currentFile = null;
-    let editor;
+    btn.addEventListener('click', () => {
+      const path = document.getElementById('diskPath').value;
+      const size = document.getElementById('diskSize').value;
+      const type = document.getElementById('diskType').value;
+      const bitlocker = document.getElementById('enableBitlocker').checked;
 
-    window.onload = () => {
-      editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
-        mode: "htmlmixed",
-        theme: "dracula",
-        lineNumbers: true,
-        lineWrapping: true,
-        autoCloseTags: true,
-        autoCloseBrackets: true,
-        extraKeys: editorExtraKeys
-      });
-
-      editor.on("inputRead", function(cm, change) {
-        if (change.text[0].match(/[\w<\"\']/)) {
-          cm.showHint();
-        }
-      });
-
-      const savedFiles = JSON.parse(localStorage.getItem('notepadFiles') || '{}');
-      const lastOpened = localStorage.getItem('lastOpenedFile');
-
-      if (lastOpened && savedFiles[lastOpened]) {
-        openFile(lastOpened);
-      } else if (Object.keys(savedFiles).length > 0) {
-        openFile(Object.keys(savedFiles)[0]);
-      } else {
-        newFile();
-      }
-    };
-
-    function newFile() {
-      editor.setValue("");
-      currentFile = `file_${Date.now()}`;
-    }
-
-    function saveCurrent() {
-      const files = JSON.parse(localStorage.getItem('notepadFiles') || '{}');
-      files[currentFile] = editor.getValue();
-      localStorage.setItem('notepadFiles', JSON.stringify(files));
-      localStorage.setItem('lastOpenedFile', currentFile);
-    }
-
-    function openFile(name) {
-      const files = JSON.parse(localStorage.getItem('notepadFiles') || '{}');
-      if (files[name]) {
-        editor.setValue(files[name]);
-        currentFile = name;
-        localStorage.setItem('lastOpenedFile', name);
-      }
-    }
-
-    function showFileManager() {
-      const files = JSON.parse(localStorage.getItem('notepadFiles') || '{}');
-      const names = Object.keys(files);
-      if (!names.length) return alert("Файлів не знайдено");
-      const choice = prompt("Оберіть файл:\n" + names.join("\n"));
-      if (choice && files[choice]) openFile(choice);
-    }
-
-    function runCode() {
-      const win = window.open();
-      win.document.write(editor.getValue());
-    }
-
-    function openImageBackground() {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = e => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            document.querySelector(".CodeMirror").style.backgroundImage = `url('${reader.result}')`;
-            document.querySelector(".CodeMirror").style.backgroundSize = 'cover';
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-      input.click();
-    }
-
-    function saveDrawing() {
-      const canvas = document.getElementById("drawCanvas");
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = "drawing.png";
-      link.click();
-    }
-
-    function toggleDraw() {
-      const canvas = document.getElementById("drawCanvas");
-      if (canvas.style.display === "none") {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        canvas.style.display = "block";
-        document.getElementById("clearBtn").style.display = "inline-block";
-        document.getElementById("colorPicker").style.display = "inline-block";
-        document.getElementById("saveDrawBtn").style.display = "inline-block";
-        enableDrawing();
-      } else {
-        canvas.style.display = "none";
-        document.getElementById("clearBtn").style.display = "none";
-        document.getElementById("colorPicker").style.display = "none";
-        document.getElementById("saveDrawBtn").style.display = "none";
-        disableDrawing();
-      }
-    }
-
-    let isDrawing = false;
-    let drawCtx;
-    let lastX = 0, lastY = 0;
-
-    function enableDrawing() {
-      const canvas = document.getElementById("drawCanvas");
-      drawCtx = canvas.getContext("2d");
-      drawCtx.lineWidth = 2;
-      drawCtx.lineCap = "round";
-      drawCtx.strokeStyle = document.getElementById("colorPicker").value;
-
-      canvas.addEventListener("mousedown", startDraw);
-      canvas.addEventListener("mousemove", draw);
-      canvas.addEventListener("mouseup", endDraw);
-      canvas.addEventListener("mouseout", endDraw);
-
-      document.getElementById("colorPicker").addEventListener("change", function() {
-        drawCtx.strokeStyle = this.value;
-      });
-    }
-
-    function disableDrawing() {
-      const canvas = document.getElementById("drawCanvas");
-      canvas.removeEventListener("mousedown", startDraw);
-      canvas.removeEventListener("mousemove", draw);
-      canvas.removeEventListener("mouseup", endDraw);
-      canvas.removeEventListener("mouseout", endDraw);
-    }
-
-    function startDraw(e) {
-      isDrawing = true;
-      [lastX, lastY] = [e.clientX, e.clientY];
-    }
-
-    function draw(e) {
-      if (!isDrawing) return;
-      drawCtx.beginPath();
-      drawCtx.moveTo(lastX, lastY);
-      drawCtx.lineTo(e.clientX, e.clientY);
-      drawCtx.stroke();
-      [lastX, lastY] = [e.clientX, e.clientY];
-    }
-
-    function endDraw() {
-      isDrawing = false;
-    }
-
-    function clearCanvas() {
-      const canvas = document.getElementById("drawCanvas");
-      drawCtx.clearRect(0, 0, canvas.width, canvas.height);
-    }
+      // TODO: добавить логику создания виртуального диска
+      statusDiv.textContent = `Запуск создания диска:
+        Путь: ${path},
+        Размер: ${size} ГБ,
+        Тип: ${type},
+        BitLocker: ${bitlocker ? 'Да' : 'Нет'}`;
+    });
   </script>
+
 </body>
 </html>
