@@ -1,79 +1,31 @@
 :root{
-  --bg:#f0f4f7;     --surface:#ffffff;
-  --primary:#1d7cf2; --primary-dark:#135bbb;
-  --user:rgba(200,230,201,.75); /* 75 % opacity */
-  --bot: rgba(224,224,224,.65); /* 65 % opacity */
-  --badge:#ffd54f;  --radius:10px;
+  --user:rgba(76,175,80,.35);   /* 35 % */
+  --bot: rgba(255,255,255,.20); /* 20 % */
+  --radius:10px;
 }
+
+/* chat-контейнер и пузыри */
+.chat{
+  flex:1 1 auto; display:flex; flex-direction:column; gap:10px;
+  padding:12px; overflow-y:auto; border-radius:var(--radius);
+  background:var(--bs-light, #ffffff);
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+.msg{
+  max-width:80%; padding:8px 10px; border-radius:var(--radius);
+  white-space:pre-wrap; word-wrap:break-word;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+.user{align-self:flex-end;background:var(--user);}
+.bot {align-self:flex-start;background:var(--bot);}
+
+/* скрытие блоков через js */
+.d-none{display:none!important;}
+
+/* тёмная тема */
 body.dark{
-  --bg:#121212;     --surface:#1e1e1e;
-  --primary:#2196f3; --primary-dark:#1565c0;
-  --user:rgba(76,175,80,.35);
-  --bot:rgba(255,255,255,.15);
-  --badge:#ffa000;  color:#e0e0e0;
+  --bs-body-bg:#121212; --bs-light:#1e1e1e;
+  color:#e0e0e0;
 }
-
-/* базовый reset */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{height:100vh;display:flex;flex-direction:column;
-     font:16px/1.4 "Segoe UI",Arial,sans-serif;background:var(--bg);color:inherit}
-
-/* header */
-header{flex-shrink:0;display:flex;justify-content:space-between;align-items:center;
-       padding:12px 16px;background:var(--primary);color:#fff;
-       box-shadow:0 2px 6px rgba(0,0,0,.15)}
-header h1{font-size:1.1rem;font-weight:600;display:flex;gap:8px;align-items:center}
-
-/* badge-процент */
-.badge{background:var(--badge);color:#000;font-size:.75rem;
-       padding:2px 6px;border-radius:var(--radius)}
-
-/* hamburger */
-.hamburger{width:24px;height:18px;display:flex;flex-direction:column;
-           justify-content:space-between;cursor:pointer}
-.hamburger span{height:3px;background:#fff;border-radius:2px}
-summary{list-style:none;cursor:pointer}
-summary::-webkit-details-marker{display:none}
-
-/* dropdown */
-details{position:relative}
-.menu{position:absolute;right:0;top:42px;min-width:200px;
-      background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:8px;
-      border-radius:var(--radius);box-shadow:0 4px 12px rgba(0,0,0,.15);
-      opacity:0;pointer-events:none;transform:translateY(-6px);transition:.2s}
-details[open]>.menu{opacity:1;pointer-events:auto;transform:translateY(0)}
-.menu button{padding:8px 12px;border:none;border-radius:var(--radius);
-             background:var(--primary);color:#fff;font-size:.9rem;cursor:pointer;transition:.15s}
-.menu button:hover{background:var(--primary-dark)}
-
-/* layout */
-main{flex:1;display:flex;flex-direction:column;gap:14px;padding:16px;overflow:hidden}
-.hidden{display:none!important}
-textarea,input{width:100%;font-size:1rem;padding:10px;
-               border:1px solid #c6d0db;border-radius:var(--radius);background:#fafbfc}
-textarea{resize:vertical;min-height:90px}
-.url-section{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
-.url-section input{flex:1 1 280px;min-width:160px}
-
-/* chat */
-#chat{flex:1;background:var(--surface);border-radius:var(--radius);padding:12px;
-      display:flex;flex-direction:column;gap:10px;overflow-y:auto;
-      box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.msg{max-width:80%;padding:8px 10px;border-radius:var(--radius);
-     white-space:pre-wrap;word-wrap:break-word;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.user{align-self:flex-end;background:var(--user)}
-.bot {align-self:flex-start;background:var(--bot)}
-
-/* input bar */
-.input-bar{display:flex;gap:10px}
-.input-bar input{flex:1}
-.send{background:var(--primary);color:#fff;border:none;border-radius:var(--radius);
-      padding:0 20px;font-size:1rem;cursor:pointer;transition:.15s}
-.send:hover{background:var(--primary-dark)}
-
-/* responsive */
-@media (max-width:600px){
-  header h1{font-size:.95rem}
-  .menu{right:50%;transform:translateX(50%)}
-  .url-section input{flex:1 1 100%}
-}
+body.dark .chat{background:#1e1e1e;box-shadow:none;}
+body.dark .msg{box-shadow:none;}
