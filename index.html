@@ -1,20 +1,20 @@
 <!DOCTYPE html><html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Адаптивный ИИ, пишущий скрипты PowerShell</title>
+  <title>Адаптивный ИИ с загрузкой текста</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background-color: #f0f4f9; margin: 0; }
-    input, button { padding: 10px; font-size: 1rem; }
-    .chat { margin-top: 20px; background-color: #fff; padding: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: calc(100vh - 150px); overflow-y: auto; display: flex; flex-direction: column; }
+    input, button, textarea { padding: 10px; font-size: 1rem; }
+    .chat { margin-top: 20px; background-color: #fff; padding: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: calc(100vh - 250px); overflow-y: auto; display: flex; flex-direction: column; }
     .message { margin-bottom: 10px; padding: 8px; border-radius: 5px; white-space: pre-wrap; max-width: 80%; }
     .user { background-color: #dcf8c6; align-self: flex-end; }
     .bot { background-color: #ececec; align-self: flex-start; }
     .input-container { display: flex; flex-wrap: wrap; gap: 10px; }
-    .input-container input { flex: 1; min-width: 200px; }
+    .input-container input, .input-container textarea { flex: 1; min-width: 200px; }
     .clear-btn { margin-left: 10px; }@media (max-width: 600px) {
   body { padding: 10px; }
-  .chat { height: calc(100vh - 170px); }
-  input, button { width: 100%; box-sizing: border-box; }
+  .chat { height: calc(100vh - 270px); }
+  input, button, textarea { width: 100%; box-sizing: border-box; }
   .input-container { flex-direction: column; }
   .clear-btn { margin-left: 0; margin-top: 10px; }
 }
@@ -23,7 +23,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-  <h2>Адаптивный ИИ, пишущий скрипты PowerShell</h2>
+  <h2>Адаптивный ИИ с загрузкой текста</h2>
+  <div class="input-container">
+    <textarea id="textInput" placeholder="Вставь текст для обучения"></textarea>
+    <button onclick="trainBot()">Обучить бота</button>
+  </div>
   <div class="input-container">
     <input type="text" id="userInput" placeholder="Задай вопрос или попроси скрипт">
     <button onclick="ask()">Отправить</button>
@@ -31,6 +35,16 @@
   </div>
   <div class="chat" id="chat"></div>  <script>
     let knowledgeBase = JSON.parse(localStorage.getItem('knowledgeBase')) || [];
+
+    function trainBot() {
+      const text = document.getElementById("textInput").value;
+      if (!text) return alert("Сначала вставь текст!");
+      const sentences = text.split(/\.|\?|!|\n/).map(s => s.trim()).filter(Boolean);
+      sentences.forEach(sentence => knowledgeBase.push({ request: sentence.toLowerCase(), script: sentence }));
+      saveKnowledgeBase();
+      alert("Бот обучен новому тексту!");
+      document.getElementById("textInput").value = "";
+    }
 
     function generatePowerShellScript(query) {
       if (query.includes("создать папку")) {
@@ -66,7 +80,8 @@
       let botAnswer = generatePowerShellScript(userText);
 
       if (!botAnswer) {
-        botAnswer = "Пока я не умею писать такой скрипт. Научи меня этому, введя команду в формате 'Запрос - Скрипт'.";
+        const found = knowledgeBase.find(entry => userText.includes(entry.request));
+        botAnswer = found ? found.script : "Пока я не знаю, как ответить. Обучи меня, введя команду в формате 'Запрос - Скрипт'.";
       }
 
       if (userText.includes(' - ')) {
@@ -74,9 +89,6 @@
         knowledgeBase.push({ request: parts[0].trim(), script: parts[1].trim() });
         saveKnowledgeBase();
         botAnswer = "Спасибо, я запомнил новый скрипт!";
-      } else {
-        const found = knowledgeBase.find(entry => userText.includes(entry.request));
-        if (found) botAnswer = found.script;
       }
 
       const botMsg = document.createElement('div');
