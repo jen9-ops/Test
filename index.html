@@ -1,7 +1,8 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VCore-OS v2</title>
+  <title>VCore-OS v1</title>
   <style>
     body { margin: 0; background: #111; color: #0f0; font-family: monospace; }
     #desktop { position: relative; height: 80vh; overflow: hidden; background: #000; }
@@ -48,12 +49,11 @@ PRINT "Clicker" "Привіт, Женя!"
 WAIT 1000
 INC clicks
 PRINT "Clicker" "Кліків: " + clicks
-IF clicks > 0 THEN
-  PRINT "Clicker" "Перше натискання!"
-END
 </textarea>
     <button onclick="run()">▶ Виконати</button>
-  </div>  <script>
+  </div>
+
+  <script>
     const desktop = document.getElementById('desktop');
     const windows = {};
     const vars = {};
@@ -98,9 +98,8 @@ END
 
     async function run() {
       const input = document.getElementById("input").value.trim().split("\n");
-      let skip = false;
-      for (let i = 0; i < input.length; i++) {
-        let line = input[i].trim();
+      for (let line of input) {
+        line = line.trim();
         if (!line || line.startsWith("//")) continue;
         const tokens = line.match(/\"[^\"]+\"|\S+/g)?.map(t => t.replace(/\"/g, "")) || [];
         const cmd = tokens[0];
@@ -121,21 +120,9 @@ END
           }
         } else if (cmd === "WAIT") {
           await new Promise(res => setTimeout(res, parseInt(tokens[1])));
-        } else if (cmd === "IF") {
-          const [left, op, right] = [tokens[1], tokens[2], tokens[3]];
-          const lval = vars[left] ?? parseInt(left);
-          const rval = vars[right] ?? parseInt(right);
-          let result = false;
-          if (op === ">") result = lval > rval;
-          if (op === "<") result = lval < rval;
-          if (op === "==") result = lval == rval;
-          if (!result) skip = true;
-        } else if (cmd === "END") {
-          skip = false;
-        } else if (skip) {
-          continue;
         }
       }
     }
-  </script></body>
+  </script>
+</body>
 </html>
