@@ -2,7 +2,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🌌 VCore-OS v5</title>
+  <title>🌌 VCore-OS v7</title>
   <style>
     body {
       margin: 0;
@@ -24,14 +24,15 @@
       border: 2px solid #0f0;
       color: #0f0;
       padding: 5px;
-      width: 320px;
-      height: 200px;
+      width: 400px;
+      height: 260px;
       resize: both;
       overflow: hidden;
       box-shadow: 0 0 12px #0f08, 0 0 5px #0f0 inset;
       border-radius: 6px;
       display: flex;
       flex-direction: column;
+      z-index: 10;
     }
     .title-bar {
       display: flex;
@@ -104,27 +105,6 @@
     button:hover {
       background: #afff00;
     }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    .browser-controls {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 6px;
-      flex-wrap: wrap;
-    }
-    .browser-controls input {
-      flex: 1;
-      padding: 4px;
-      background: #000;
-      color: #0f0;
-      border: 1px solid #0f0;
-      border-radius: 4px;
-      font-family: monospace;
-      font-size: 14px;
-    }
     #toggle-terminal {
       position: absolute;
       bottom: 0;
@@ -144,105 +124,92 @@
   <div id="desktop"></div>
   <div id="toggle-terminal" onclick="toggleTerminal()">Термінал</div>
   <div id="terminal">
-    <textarea id="input" rows="4">MKDIR "/docs"
-WRITE "/docs/hello.txt" "Привіт!"
-READ "/docs/hello.txt"
-LS "/docs"
-RM "/docs/hello.txt"</textarea>
+    <textarea id="input" rows="4">RUN JS "alert('Hello from VCore!')"</textarea>
     <button onclick="run()">▶ Виконати</button>
     <div id="errors"></div>
   </div>  <script>
     const desktop = document.getElementById('desktop');
-    const windows = {};
-    const vars = {};
     const errorOutput = document.getElementById("errors");
     const terminal = document.getElementById("terminal");
-    let fileSystem = JSON.parse(localStorage.getItem('vcore_fs')) || { "/": { type: "folder", children: {} } };
 
-    function saveFS() {
-      localStorage.setItem("vcore_fs", JSON.stringify(fileSystem));
+    function makeDraggable(win, handle) {
+      let isDragging = false, offsetX, offsetY;
+      handle.onmousedown = e => {
+        isDragging = true;
+        offsetX = e.clientX - win.offsetLeft;
+        offsetY = e.clientY - win.offsetTop;
+      };
+      document.onmousemove = e => {
+        if (!isDragging) return;
+        win.style.left = e.clientX - offsetX + 'px';
+        win.style.top = e.clientY - offsetY + 'px';
+      };
+      document.onmouseup = () => isDragging = false;
     }
 
-    function getPath(path) {
-      const parts = path.split("/").filter(Boolean);
-      let node = fileSystem["/"];
-      for (let i = 0; i < parts.length; i++) {
-        if (!node.children[parts[i]]) return null;
-        node = node.children[parts[i]];
-      }
-      return node;
-    }
+    function openBrowser(url = "https://example.com") {
+      const win = document.createElement('div');
+      win.className = 'window';
+      win.style.left = '100px';
+      win.style.top = '80px';
 
-    function mkdir(path) {
-      const parts = path.split("/").filter(Boolean);
-      let node = fileSystem["/"];
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        if (!node.children[part]) {
-          node.children[part] = { type: "folder", children: {} };
-        }
-        node = node.children[part];
-      }
-      saveFS();
-    }
+      const bar = document.createElement('div');
+      bar.className = 'title-bar';
+      bar.innerHTML = `<span>Браузер</span>`;
+      const btn = document.createElement('button');
+      btn.textContent = '⨯';
+      btn.onclick = () => win.remove();
+      bar.appendChild(btn);
+      win.appendChild(bar);
 
-    function writeFile(path, content) {
-      const parts = path.split("/").filter(Boolean);
-      const fileName = parts.pop();
-      let node = fileSystem["/"];
-      for (let i = 0; i < parts.length; i++) {
-        node = node.children[parts[i]];
-        if (!node || node.type !== "folder") return;
-      }
-      node.children[fileName] = { type: "file", content };
-      saveFS();
-    }
+      const content = document.createElement('div');
+      content.className = 'content';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = url;
+      input.style.width = '80%';
+      const goBtn = document.createElement('button');
+      goBtn.textContent = 'Go';
 
-    function readFile(path) {
-      const file = getPath(path);
-      return file && file.type === "file" ? file.content : null;
-    }
+      const iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.style.width = '100%';
+      iframe.style.height = 'calc(100% - 40px)';
+      iframe.style.border = 'none';
 
-    function listDir(path) {
-      const dir = getPath(path);
-      return dir && dir.type === "folder" ? Object.keys(dir.children) : [];
-    }
+      goBtn.onclick = () => {
+        iframe.src = input.value;
+      };
 
-    function removePath(path) {
-      const parts = path.split("/").filter(Boolean);
-      const fileName = parts.pop();
-      let node = fileSystem["/"];
-      for (let i = 0; i < parts.length; i++) {
-        node = node.children[parts[i]];
-        if (!node || node.type !== "folder") return;
-      }
-      delete node.children[fileName];
-      saveFS();
+      content.appendChild(input);
+      content.appendChild(goBtn);
+      content.appendChild(iframe);
+      win.appendChild(content);
+
+      desktop.appendChild(win);
+      makeDraggable(win, bar);
     }
 
     function toggleTerminal() {
       terminal.style.display = terminal.style.display === 'none' ? 'block' : 'none';
     }
 
-    async function run() {
-      const input = document.getElementById("input").value.trim().split("\n");
+    function run() {
+      const lines = document.getElementById("input").value.trim().split("\n");
       errorOutput.textContent = "";
-      try {
-        for (let line of input) {
-          line = line.trim();
-          if (!line || line.startsWith("//")) continue;
-          const tokens = line.match(/\"[^\"]+\"|\S+/g).map(t => t.replace(/\"/g, ""));
-          const cmd = tokens[0];
-
-          if (cmd === "MKDIR") mkdir(tokens[1]);
-          else if (cmd === "WRITE") writeFile(tokens[1], tokens[2]);
-          else if (cmd === "READ") alert(readFile(tokens[1]) || "Файл не знайдено");
-          else if (cmd === "LS") alert(listDir(tokens[1]).join("\n"));
-          else if (cmd === "RM") removePath(tokens[1]);
-          else throw new Error(`Невідома команда: ${cmd}`);
+      for (let line of lines) {
+        const tokens = line.trim().match(/\"[^\"]+\"|\S+/g)?.map(t => t.replace(/\"/g, "")) || [];
+        const cmd = tokens[0]?.toUpperCase();
+        if (cmd === 'RUN' && tokens[1]?.toUpperCase() === 'JS') {
+          try {
+            eval(tokens.slice(2).join(' '));
+          } catch (e) {
+            errorOutput.textContent += e + "\n";
+          }
         }
-      } catch (err) {
-        errorOutput.textContent = "❌ Помилка: " + err.message;
+        if (cmd === 'OPEN' && tokens[1]?.toUpperCase() === 'BROWSER') {
+          openBrowser(tokens[2] || 'https://example.com');
+        }
       }
     }
   </script></body>
