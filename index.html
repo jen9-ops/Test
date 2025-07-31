@@ -2,7 +2,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🌌 VCore-OS v3 + Browser Buttons</title>
+  <title>🌌 VCore-OS v5</title>
   <style>
     body {
       margin: 0;
@@ -13,7 +13,8 @@
     }
     #desktop {
       position: relative;
-      min-height: 60vh;
+      width: 100vw;
+      height: 100vh;
       background: repeating-linear-gradient(45deg, #1a1a1a, #1a1a1a 10px, #111 10px, #111 20px);
       overflow: hidden;
     }
@@ -23,40 +24,55 @@
       border: 2px solid #0f0;
       color: #0f0;
       padding: 5px;
-      width: 240px;
-      height: 140px;
+      width: 320px;
+      height: 200px;
       resize: both;
-      overflow: auto;
+      overflow: hidden;
       box-shadow: 0 0 12px #0f08, 0 0 5px #0f0 inset;
       border-radius: 6px;
+      display: flex;
+      flex-direction: column;
     }
     .title-bar {
-      cursor: move;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       background: #0f0;
       color: #000;
       font-weight: bold;
       padding: 4px 6px;
+      cursor: move;
+      user-select: none;
       border-radius: 4px 4px 0 0;
+    }
+    .title-bar button {
+      background: #000;
+      color: #0f0;
+      border: none;
+      padding: 2px 6px;
+      margin-left: 4px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    .title-bar button:hover {
+      background: #222;
+    }
+    .content {
+      flex: 1;
+      overflow: auto;
+      padding: 5px;
     }
     #terminal {
       position: absolute;
-      top: 20px;
-      left: 20px;
-      width: 95%;
-      max-width: 700px;
+      bottom: 0;
+      left: 0;
+      width: 100%;
       background: #000;
-      border: 2px solid #0f0;
+      border-top: 2px solid #0f0;
       padding: 10px;
       box-sizing: border-box;
       z-index: 1000;
-      box-shadow: 0 0 12px #0f08;
-      border-radius: 6px;
-    }
-    #terminal .title-bar {
-      background: #0f0;
-      color: #000;
-      margin: -10px -10px 10px -10px;
-      border-radius: 6px 6px 0 0;
+      display: none;
     }
     #input {
       width: 100%;
@@ -90,7 +106,7 @@
     }
     iframe {
       width: 100%;
-      height: 300px;
+      height: 100%;
       border: none;
     }
     .browser-controls {
@@ -109,154 +125,121 @@
       font-family: monospace;
       font-size: 14px;
     }
-    .browser-controls button {
-      padding: 4px 8px;
-      font-size: 12px;
+    #toggle-terminal {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      background: #0f0;
+      color: #000;
+      padding: 6px 12px;
+      font-weight: bold;
+      font-size: 14px;
+      border-top-left-radius: 8px;
+      cursor: pointer;
+      z-index: 1100;
     }
   </style>
 </head>
 <body>
   <div id="desktop"></div>
+  <div id="toggle-terminal" onclick="toggleTerminal()">Термінал</div>
   <div id="terminal">
-    <div class="title-bar">🧠 VCX Термінал</div>
-    <div>> Введіть команди VCX нижче:</div>
-    <textarea id="input" rows="6">// Приклад:
-OPEN BROWSER "Web1" WIDTH 600 HEIGHT 450
-NAVIGATE "Web1" "https://example.com"</textarea>
+    <textarea id="input" rows="4">MKDIR "/docs"
+WRITE "/docs/hello.txt" "Привіт!"
+READ "/docs/hello.txt"
+LS "/docs"
+RM "/docs/hello.txt"</textarea>
     <button onclick="run()">▶ Виконати</button>
     <div id="errors"></div>
   </div>  <script>
     const desktop = document.getElementById('desktop');
     const windows = {};
     const vars = {};
-    const terminal = document.getElementById("terminal");
-    const terminalTitle = terminal.querySelector(".title-bar");
     const errorOutput = document.getElementById("errors");
+    const terminal = document.getElementById("terminal");
+    let fileSystem = JSON.parse(localStorage.getItem('vcore_fs')) || { "/": { type: "folder", children: {} } };
 
-    makeDraggable(terminal, terminalTitle);
-
-    function createWindow(id, w = 240, h = 140, type = 'default') {
-      if (windows[id]) return;
-
-      const win = document.createElement('div');
-      win.className = 'window';
-      win.style.width = w + 'px';
-      win.style.height = h + 'px';
-      win.style.left = '50px';
-      win.style.top = '50px';
-
-      const title = document.createElement('div');
-      title.className = 'title-bar';
-      title.textContent = id;
-      win.appendChild(title);
-
-      const content = document.createElement('div');
-      content.className = 'content';
-
-      if (type === 'browser') {
-        const controls = document.createElement('div');
-        controls.className = 'browser-controls';
-
-        const input = document.createElement('input');
-        input.placeholder = 'https://example.com';
-
-        const goBtn = document.createElement('button');
-        goBtn.textContent = 'Перейти';
-
-        const reloadBtn = document.createElement('button');
-        reloadBtn.textContent = '🔁';
-
-        const iframe = document.createElement('iframe');
-
-        goBtn.onclick = () => iframe.src = input.value;
-        reloadBtn.onclick = () => iframe.src = iframe.src;
-        input.onkeydown = e => { if (e.key === 'Enter') iframe.src = input.value; };
-
-        controls.appendChild(input);
-        controls.appendChild(goBtn);
-        controls.appendChild(reloadBtn);
-
-        content.appendChild(controls);
-        content.appendChild(iframe);
-      }
-
-      win.appendChild(content);
-      makeDraggable(win, title);
-      desktop.appendChild(win);
-      windows[id] = win;
+    function saveFS() {
+      localStorage.setItem("vcore_fs", JSON.stringify(fileSystem));
     }
 
-    function makeDraggable(win, handle) {
-      let isDragging = false, offsetX, offsetY;
-      handle.onmousedown = e => {
-        isDragging = true;
-        offsetX = e.clientX - win.offsetLeft;
-        offsetY = e.clientY - win.offsetTop;
-      };
-      document.onmousemove = e => {
-        if (!isDragging) return;
-        win.style.left = (e.clientX - offsetX) + 'px';
-        win.style.top = (e.clientY - offsetY) + 'px';
-      };
-      document.onmouseup = () => isDragging = false;
+    function getPath(path) {
+      const parts = path.split("/").filter(Boolean);
+      let node = fileSystem["/"];
+      for (let i = 0; i < parts.length; i++) {
+        if (!node.children[parts[i]]) return null;
+        node = node.children[parts[i]];
+      }
+      return node;
+    }
+
+    function mkdir(path) {
+      const parts = path.split("/").filter(Boolean);
+      let node = fileSystem["/"];
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (!node.children[part]) {
+          node.children[part] = { type: "folder", children: {} };
+        }
+        node = node.children[part];
+      }
+      saveFS();
+    }
+
+    function writeFile(path, content) {
+      const parts = path.split("/").filter(Boolean);
+      const fileName = parts.pop();
+      let node = fileSystem["/"];
+      for (let i = 0; i < parts.length; i++) {
+        node = node.children[parts[i]];
+        if (!node || node.type !== "folder") return;
+      }
+      node.children[fileName] = { type: "file", content };
+      saveFS();
+    }
+
+    function readFile(path) {
+      const file = getPath(path);
+      return file && file.type === "file" ? file.content : null;
+    }
+
+    function listDir(path) {
+      const dir = getPath(path);
+      return dir && dir.type === "folder" ? Object.keys(dir.children) : [];
+    }
+
+    function removePath(path) {
+      const parts = path.split("/").filter(Boolean);
+      const fileName = parts.pop();
+      let node = fileSystem["/"];
+      for (let i = 0; i < parts.length; i++) {
+        node = node.children[parts[i]];
+        if (!node || node.type !== "folder") return;
+      }
+      delete node.children[fileName];
+      saveFS();
+    }
+
+    function toggleTerminal() {
+      terminal.style.display = terminal.style.display === 'none' ? 'block' : 'none';
     }
 
     async function run() {
       const input = document.getElementById("input").value.trim().split("\n");
       errorOutput.textContent = "";
-      let skip = false;
       try {
-        for (let i = 0; i < input.length; i++) {
-          let line = input[i].trim();
+        for (let line of input) {
+          line = line.trim();
           if (!line || line.startsWith("//")) continue;
-          const match = line.match(/\"[^\"]+\"|\S+/g);
-          const tokens = match ? match.map(t => t.replace(/\"/g, "")) : [];
+          const tokens = line.match(/\"[^\"]+\"|\S+/g).map(t => t.replace(/\"/g, ""));
           const cmd = tokens[0];
 
-          if (cmd === "SET") {
-            vars[tokens[1]] = parseInt(tokens[3]);
-          } else if (cmd === "INC") {
-            const v = tokens[1];
-            vars[v] = (vars[v] || 0) + 1;
-          } else if (cmd === "OPEN" && tokens[1] === "WINDOW") {
-            createWindow(tokens[2], parseInt(tokens[4]), parseInt(tokens[6]));
-          } else if (cmd === "OPEN" && tokens[1] === "BROWSER") {
-            createWindow(tokens[2], parseInt(tokens[4]), parseInt(tokens[6]), 'browser');
-          } else if (cmd === "PRINT") {
-            const win = windows[tokens[1]];
-            if (win) {
-              let text = tokens.slice(2).join(" ");
-              for (let key in vars) text = text.replaceAll(key, vars[key]);
-              win.querySelector('.content').textContent += text + "\n";
-            }
-          } else if (cmd === "NAVIGATE") {
-            const win = windows[tokens[1]];
-            if (win) {
-              const iframe = win.querySelector('iframe');
-              const input = win.querySelector('input');
-              if (iframe && input) {
-                input.value = tokens[2];
-                iframe.src = tokens[2];
-              }
-            }
-          } else if (cmd === "WAIT") {
-            await new Promise(res => setTimeout(res, parseInt(tokens[1])));
-          } else if (cmd === "IF") {
-            const [left, op, right] = [tokens[1], tokens[2], tokens[3]];
-            const lval = vars[left] ?? parseInt(left);
-            const rval = vars[right] ?? parseInt(right);
-            let result = false;
-            if (op === ">") result = lval > rval;
-            if (op === "<") result = lval < rval;
-            if (op === "==") result = lval == rval;
-            if (!result) skip = true;
-          } else if (cmd === "END") {
-            skip = false;
-          } else if (skip) {
-            continue;
-          } else {
-            throw new Error(`Невідома команда: ${cmd}`);
-          }
+          if (cmd === "MKDIR") mkdir(tokens[1]);
+          else if (cmd === "WRITE") writeFile(tokens[1], tokens[2]);
+          else if (cmd === "READ") alert(readFile(tokens[1]) || "Файл не знайдено");
+          else if (cmd === "LS") alert(listDir(tokens[1]).join("\n"));
+          else if (cmd === "RM") removePath(tokens[1]);
+          else throw new Error(`Невідома команда: ${cmd}`);
         }
       } catch (err) {
         errorOutput.textContent = "❌ Помилка: " + err.message;
