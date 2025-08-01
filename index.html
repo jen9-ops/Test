@@ -1,216 +1,90 @@
-<!DOCTYPE html><html lang="uk">
+<!DOCTYPE html><html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🌌 VCore-OS v7</title>
+  <title>Обнаружение машин — офлайн</title>
   <style>
     body {
-      margin: 0;
-      background: linear-gradient(to bottom right, #1b1c1d, #0f0f0f);
-      color: #0f0;
-      font-family: 'Courier New', monospace;
-      overflow: hidden;
+      background: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      text-align: center;
     }
-    #desktop {
+    #video-container {
       position: relative;
-      width: 100vw;
-      height: 100vh;
-      background: repeating-linear-gradient(45deg, #1a1a1a, #1a1a1a 10px, #111 10px, #111 20px);
-      overflow: hidden;
+      max-width: 900px;
+      margin: 20px auto;
     }
-    .window {
+    #video {
+      width: 100%;
+      display: block;
+    }
+    #overlay {
       position: absolute;
-      background: #121212;
-      border: 2px solid #0f0;
-      color: #0f0;
-      padding: 5px;
-      width: 400px;
-      height: 260px;
-      resize: both;
-      overflow: hidden;
-      box-shadow: 0 0 12px #0f08, 0 0 5px #0f0 inset;
-      border-radius: 6px;
-      display: flex;
-      flex-direction: column;
-      z-index: 10;
-    }
-    .title-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #0f0;
-      color: #000;
-      font-weight: bold;
-      padding: 4px 6px;
-      cursor: move;
-      user-select: none;
-      border-radius: 4px 4px 0 0;
-    }
-    .title-bar button {
-      background: #000;
-      color: #0f0;
-      border: none;
-      padding: 2px 6px;
-      margin-left: 4px;
-      cursor: pointer;
-      border-radius: 3px;
-    }
-    .title-bar button:hover {
-      background: #222;
-    }
-    .content {
-      flex: 1;
-      overflow: auto;
-      padding: 5px;
-    }
-    #terminal {
-      position: absolute;
-      bottom: 0;
+      top: 0;
       left: 0;
-      width: 100%;
-      background: #000;
-      border-top: 2px solid #0f0;
-      padding: 10px;
-      box-sizing: border-box;
-      z-index: 1000;
-      display: none;
+      pointer-events: none;
     }
-    #input {
-      width: 100%;
-      background: #101010;
-      color: #0f0;
-      border: 1px solid #0f0;
-      padding: 6px;
-      border-radius: 4px;
-      font-family: inherit;
-      font-size: 14px;
-    }
-    #errors {
-      color: #f55;
-      margin-top: 6px;
-      white-space: pre-wrap;
-    }
-    button {
-      background: #0f0;
-      color: #000;
-      border: none;
-      padding: 6px 14px;
-      margin-top: 10px;
-      font-weight: bold;
-      font-size: 14px;
-      border-radius: 4px;
-      box-shadow: 0 0 6px #0f04;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #afff00;
-    }
-    #toggle-terminal {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      background: #0f0;
-      color: #000;
-      padding: 6px 12px;
-      font-weight: bold;
-      font-size: 14px;
-      border-top-left-radius: 8px;
-      cursor: pointer;
-      z-index: 1100;
+    input[type="file"] {
+      margin: 10px auto;
     }
   </style>
 </head>
 <body>
-  <div id="desktop"></div>
-  <div id="toggle-terminal" onclick="toggleTerminal()">Термінал</div>
-  <div id="terminal">
-    <textarea id="input" rows="4">RUN JS "alert('Hello from VCore!')"</textarea>
-    <button onclick="run()">▶ Виконати</button>
-    <div id="errors"></div>
+  <h2>🎥 Обнаружение машин — локальная версия</h2>  <p>
+    Выберите локальное <strong>видео (.mp4)</strong> и файл <strong>разметки (.json)</strong>
+  </p>  <input type="file" id="videoInput" accept="video/mp4">
+  <input type="file" id="jsonInput" accept="application/json">  <div id="video-container">
+    <video id="video" controls></video>
+    <canvas id="overlay"></canvas>
   </div>  <script>
-    const desktop = document.getElementById('desktop');
-    const errorOutput = document.getElementById("errors");
-    const terminal = document.getElementById("terminal");
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas.getContext('2d');
+    let boxesBySecond = {};
 
-    function makeDraggable(win, handle) {
-      let isDragging = false, offsetX, offsetY;
-      handle.onmousedown = e => {
-        isDragging = true;
-        offsetX = e.clientX - win.offsetLeft;
-        offsetY = e.clientY - win.offsetTop;
-      };
-      document.onmousemove = e => {
-        if (!isDragging) return;
-        win.style.left = e.clientX - offsetX + 'px';
-        win.style.top = e.clientY - offsetY + 'px';
-      };
-      document.onmouseup = () => isDragging = false;
-    }
-
-    function openBrowser(url = "https://example.com") {
-      const win = document.createElement('div');
-      win.className = 'window';
-      win.style.left = '100px';
-      win.style.top = '80px';
-
-      const bar = document.createElement('div');
-      bar.className = 'title-bar';
-      bar.innerHTML = `<span>Браузер</span>`;
-      const btn = document.createElement('button');
-      btn.textContent = '⨯';
-      btn.onclick = () => win.remove();
-      bar.appendChild(btn);
-      win.appendChild(bar);
-
-      const content = document.createElement('div');
-      content.className = 'content';
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = url;
-      input.style.width = '80%';
-      const goBtn = document.createElement('button');
-      goBtn.textContent = 'Go';
-
-      const iframe = document.createElement('iframe');
-      iframe.src = url;
-      iframe.style.width = '100%';
-      iframe.style.height = 'calc(100% - 40px)';
-      iframe.style.border = 'none';
-
-      goBtn.onclick = () => {
-        iframe.src = input.value;
-      };
-
-      content.appendChild(input);
-      content.appendChild(goBtn);
-      content.appendChild(iframe);
-      win.appendChild(content);
-
-      desktop.appendChild(win);
-      makeDraggable(win, bar);
-    }
-
-    function toggleTerminal() {
-      terminal.style.display = terminal.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function run() {
-      const lines = document.getElementById("input").value.trim().split("\n");
-      errorOutput.textContent = "";
-      for (let line of lines) {
-        const tokens = line.trim().match(/\"[^\"]+\"|\S+/g)?.map(t => t.replace(/\"/g, "")) || [];
-        const cmd = tokens[0]?.toUpperCase();
-        if (cmd === 'RUN' && tokens[1]?.toUpperCase() === 'JS') {
-          try {
-            eval(tokens.slice(2).join(' '));
-          } catch (e) {
-            errorOutput.textContent += e + "\n";
-          }
-        }
-        if (cmd === 'OPEN' && tokens[1]?.toUpperCase() === 'BROWSER') {
-          openBrowser(tokens[2] || 'https://example.com');
-        }
+    document.getElementById('videoInput').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) {
+        video.src = URL.createObjectURL(file);
       }
+    });
+
+    document.getElementById('jsonInput').addEventListener('change', e => {
+      const reader = new FileReader();
+      reader.onload = event => {
+        try {
+          boxesBySecond = JSON.parse(event.target.result);
+        } catch (err) {
+          alert("Ошибка в JSON: " + err);
+        }
+      };
+      reader.readAsText(e.target.files[0]);
+    });
+
+    function drawBoxesForTime(currentTime) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const key = currentTime.toFixed(1);
+      const boxes = boxesBySecond[key] || [];
+
+      boxes.forEach(box => {
+        const [x, y, w, h, label] = box;
+        ctx.strokeStyle = "lime";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "lime";
+        ctx.fillText(label, x, y - 5);
+      });
     }
+
+    video.addEventListener('loadedmetadata', () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    });
+
+    video.addEventListener('timeupdate', () => {
+      drawBoxesForTime(video.currentTime);
+    });
   </script></body>
 </html>
