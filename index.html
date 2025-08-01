@@ -1,96 +1,193 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <title>Hyper-Bot 🎓</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Редактор HTML/CSS/JS</title>
 
-  <!-- запрет pinch-zoom -->
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0,
-                 maximum-scale=1.0, user-scalable=no" />
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://esm.sh/@codemirror/theme-one-dark@6.2.1/theme.css" />
 
-  <!-- favicon + стили -->
-  <link rel="icon" href="ico.ico" type="image/x-icon" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        rel="stylesheet" crossorigin="anonymous" />
-  <link rel="stylesheet" href="style.css" />
-
-  <!-- компактный GPT-2 в браузере -->
-  <script type="model" src="https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.min.js"></script>
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      padding-top: 30px;
+    }
+    .editor-wrapper {
+      border: 1px solid #333;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .btn-custom {
+      background-color: #00bcd4;
+      color: white;
+    }
+    .btn-custom:hover {
+      background-color: #0097a7;
+    }
+    #console {
+      white-space: pre-wrap;
+      font-family: monospace;
+      background: #1e1e1e;
+      border-radius: 8px;
+      border: 1px solid #333;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+    input[type="file"] {
+      display: none;
+    }
+  </style>
 </head>
-
 <body>
-  <!-- NAVBAR -->
-  <header class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">Hyper-Bot 🎓</a>
-      <span id="progress" class="badge text-dark bg-warning">0 %</span>
+  <div class="container">
+    <h1 class="text-center">🌐 Веб-Редактор HTML / CSS / JS</h1>
 
-      <button class="navbar-toggler" type="button"
-              data-bs-toggle="collapse" data-bs-target="#navBot"
-              aria-controls="navBot" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse justify-content-end" id="navBot">
-        <ul class="navbar-nav">
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#"
-               role="button" data-bs-toggle="dropdown">Действия</a>
-
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#" onclick="showTrainText()">Обучить по тексту</a></li>
-              <li><a class="dropdown-item" href="#" onclick="showTrainURL()">Обучить по URL</a></li>
-              <li><a class="dropdown-item" href="#" onclick="showAnalysis()">Показать анализ</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="#" onclick="exportData()">Скачать память</a></li>
-              <li><a class="dropdown-item" href="#" onclick="document.getElementById('fileInput').click()">Загрузить память</a></li>
-              <li><a class="dropdown-item" href="#" onclick="clearChat()">Очистить чат</a></li>
-              <li><a class="dropdown-item" href="#" onclick="toggleTheme()">Тёмная тема</a></li>
-            </ul>
-          </li>
-        </ul>
-      </div>
+    <div class="form-check form-switch mb-3 text-end">
+      <input class="form-check-input" type="checkbox" id="wrap-toggle">
+      <label class="form-check-label" for="wrap-toggle">Перенос рядків (Word wrap)</label>
     </div>
-  </header>
 
-  <!-- MAIN -->
-  <main class="flex-grow-1 d-flex flex-column gap-3 p-3 overflow-hidden">
-
-    <!-- обучение текстом -->
-    <section id="trainText" class="d-none">
-      <textarea id="textInput" class="form-control mb-2"
-                placeholder="Вставь текст для обучения…"></textarea>
-      <button class="btn btn-primary"
-              onclick="trainFromText(); hideSections();">Обучить</button>
-    </section>
-
-    <!-- обучение URL -->
-    <section id="trainURL" class="d-none url-section d-flex flex-wrap gap-2 align-items-start">
-      <input id="urlInput" class="form-control flex-grow-1"
-             placeholder="Вставь URL для обучения">
-      <button class="btn btn-primary"
-              onclick="trainFromURL(); hideSections();">Загрузить URL</button>
-    </section>
-
-    <!-- чат -->
-    <div id="chat" class="chat"></div>
-
-    <!-- строка ввода -->
-    <div class="d-flex gap-2">
-      <input id="userInput" class="form-control"
-             placeholder="Напиши сообщение…"
-             onkeydown="if (event.key==='Enter') ask();" />
-      <button class="btn btn-primary" onclick="ask()">➤</button>
+    <div class="mb-3">
+      <label class="form-label">HTML</label>
+      <div id="html-editor" class="editor-wrapper"></div>
     </div>
-  </main>
 
-  <!-- импорт резервной памяти -->
-  <input id="fileInput" type="file" accept="application/json"
-         class="d-none" onchange="importData(event)" />
+    <div class="mb-3">
+      <label class="form-label">CSS</label>
+      <div id="css-editor" class="editor-wrapper"></div>
+    </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-          crossorigin="anonymous"></script>
-  <script src="app.js"></script>
+    <div class="mb-3">
+      <label class="form-label">JavaScript</label>
+      <div id="js-editor" class="editor-wrapper"></div>
+    </div>
+
+    <div class="d-flex justify-content-center gap-3 mb-3 flex-wrap">
+      <button class="btn btn-custom" id="run">▶ Виконати</button>
+      <button class="btn btn-outline-light" id="save">💾 Зберегти</button>
+      <button class="btn btn-outline-warning" id="show-console">🛠 Консоль</button>
+      <label class="btn btn-outline-info" for="file-import">📂 Імпорт</label>
+      <input type="file" id="file-import" accept=".html" />
+    </div>
+
+    <div id="console" class="d-none"></div>
+  </div>
+
+  <!-- CodeMirror -->
+  <script type="module">
+    import { EditorView, basicSetup } from "https://esm.sh/@codemirror/basic-setup";
+    import { html } from "https://esm.sh/@codemirror/lang-html";
+    import { css } from "https://esm.sh/@codemirror/lang-css";
+    import { javascript } from "https://esm.sh/@codemirror/lang-javascript";
+    import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark";
+    import { EditorState } from "https://esm.sh/@codemirror/state";
+
+    let htmlEditor, cssEditor, jsEditor;
+    let wrapExtension = [];
+
+    const wrapToggle = document.getElementById("wrap-toggle");
+
+    function makeEditor(parent, language, storageKey, defaultValue) {
+      const saved = localStorage.getItem(storageKey) || defaultValue;
+      return new EditorView({
+        doc: saved,
+        extensions: [basicSetup, language(), oneDark, ...wrapExtension],
+        parent: parent
+      });
+    }
+
+    function applyWrap(editor, enabled) {
+      editor.dispatch({
+        effects: EditorView.lineWrapping.reconfigure(
+          enabled ? EditorView.lineWrapping : []
+        )
+      });
+    }
+
+    window.addEventListener("load", () => {
+      htmlEditor = makeEditor(document.getElementById("html-editor"), html, "htmlCode", "<h1>Привіт, світ!</h1>");
+      cssEditor = makeEditor(document.getElementById("css-editor"), css, "cssCode", "h1 { color: lightgreen; }");
+      jsEditor = makeEditor(document.getElementById("js-editor"), javascript, "jsCode", "console.log('Працює!');");
+
+      document.getElementById("run").onclick = runCode;
+      document.getElementById("save").onclick = saveCode;
+      document.getElementById("show-console").onclick = () => {
+        document.getElementById("console").classList.toggle("d-none");
+      };
+
+      // Word wrap toggle
+      wrapToggle.addEventListener("change", () => {
+        const wrap = wrapToggle.checked;
+        applyWrap(htmlEditor, wrap);
+        applyWrap(cssEditor, wrap);
+        applyWrap(jsEditor, wrap);
+      });
+
+      // Автосохранение
+      setInterval(() => {
+        localStorage.setItem("htmlCode", htmlEditor.state.doc.toString());
+        localStorage.setItem("cssCode", cssEditor.state.doc.toString());
+        localStorage.setItem("jsCode", jsEditor.state.doc.toString());
+      }, 2000);
+
+      // Импорт из файла
+      document.getElementById("file-import").addEventListener("change", e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const content = event.target.result;
+          htmlEditor.dispatch({ changes: { from: 0, to: htmlEditor.state.doc.length, insert: content } });
+        };
+        reader.readAsText(file);
+      });
+    });
+
+    function runCode() {
+      const htmlCode = htmlEditor.state.doc.toString();
+      const cssCode = `<style>${cssEditor.state.doc.toString()}</style>`;
+      const jsCode = `<script>
+        try {
+          ${jsEditor.state.doc.toString()}
+        } catch (e) {
+          window.opener?.postMessage('[JS Error] ' + e.message, '*');
+        }
+      <\/script>`;
+
+      const code = `<!DOCTYPE html><html><head>${cssCode}</head><body>${htmlCode}${jsCode}</body></html>`;
+      const win = window.open();
+      if (win) {
+        win.document.write(code);
+        win.document.close();
+        window.addEventListener("message", e => {
+          const box = document.getElementById("console");
+          box.classList.remove("d-none");
+          box.textContent += e.data + "\n";
+        });
+      } else {
+        alert("Браузер заблокував спливаюче вікно.");
+      }
+    }
+
+    function saveCode() {
+      const htmlCode = htmlEditor.state.doc.toString();
+      const cssCode = `<style>${cssEditor.state.doc.toString()}</style>`;
+      const jsCode = `<script>${jsEditor.state.doc.toString()}<\/script>`;
+      const blob = new Blob(
+        [`<!DOCTYPE html><html><head>${cssCode}</head><body>${htmlCode}${jsCode}</body></html>`],
+        { type: "text/html" }
+      );
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "index.html";
+      a.click();
+    }
+  </script>
 </body>
 </html>
