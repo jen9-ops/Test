@@ -15,7 +15,6 @@
   <style>
     :root {
       --bg:#1f2530;
-      --card:#232a3b;
       --radius:6px;
     }
     body {
@@ -79,7 +78,7 @@
 
     <div id="alerts" class="alert-placeholder"></div>
 
-   
+  
 
     <ul class="nav nav-tabs" id="tabs" role="tablist">
       <li class="nav-item" role="presentation">
@@ -208,6 +207,7 @@
       const css = `<style>${cssEditor.getValue()}</style>`;
       const userJs = jsEditor.getValue();
 
+      // Улучшенный скрипт для ловли ошибок и unhandledrejection
       const payload = `<!DOCTYPE html>
 <html>
 <head>
@@ -217,13 +217,26 @@ ${css}
 <body>
 ${html}
 <script>
-  window.onerror = function(msg, url, line, col, err) {
-    window.opener.postMessage('[JS Error] ' + msg + ' (' + line + ':' + col + ')', '*');
+  const sendMsg = msg => {
+    if (window.opener) window.opener.postMessage(msg, '*');
   };
+
+  window.onerror = function(msg, url, line, col, err) {
+    sendMsg('[JS Error] ' + msg + ' (' + line + ':' + col + ')');
+  };
+
+  window.addEventListener('unhandledrejection', e => {
+    let reason = e.reason;
+    let text = '[Unhandled Rejection] ';
+    if (reason && reason.message) text += reason.message;
+    else text += String(reason);
+    sendMsg(text);
+  });
+
   try {
     ${userJs}
-  } catch(e) {
-    window.opener.postMessage('[JS Exception] ' + e.message, '*');
+  } catch (e) {
+    sendMsg('[JS Exception] ' + e.message);
   }
 <\/script>
 </body>
@@ -231,7 +244,7 @@ ${html}
 
       const w = window.open();
       if (!w) {
-        showMessage('Спливаюче вікно заблоковано. Скопіюй URL вручну.', 'warning', 2200);
+        showMessage('Спливаюче вікно заблоковано. Скопіюй вручну.', 'warning', 2200);
         const blob = new Blob([payload], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         consoleBox.textContent += 'Відкрий вручну: ' + url + '\n';
@@ -281,7 +294,7 @@ ${html}
       consoleBox.classList.toggle('d-none');
     });
 
-    // Отрисовка сообщений из окна результата
+    // Получение сообщений (ошибок) из второй вкладки
     window.addEventListener('message', e => {
       consoleBox.classList.remove('d-none');
       consoleBox.textContent += e.data + '\n';
