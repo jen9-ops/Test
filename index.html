@@ -1,90 +1,85 @@
-<!DOCTYPE html><html lang="ru">
+<!DOCTYPE html>
+<html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <title>Обнаружение машин — офлайн</title>
-  <style>
-    body {
-      background: #111;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      text-align: center;
-    }
-    #video-container {
-      position: relative;
-      max-width: 900px;
-      margin: 20px auto;
-    }
-    #video {
-      width: 100%;
-      display: block;
-    }
-    #overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      pointer-events: none;
-    }
-    input[type="file"] {
-      margin: 10px auto;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Стабільний редактор HTML/CSS/JS</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- CodeMirror 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/lib/codemirror.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/theme/material.css">
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>🎥 Обнаружение машин — локальная версия</h2>  <p>
-    Выберите локальное <strong>видео (.mp4)</strong> и файл <strong>разметки (.json)</strong>
-  </p>  <input type="file" id="videoInput" accept="video/mp4">
-  <input type="file" id="jsonInput" accept="application/json">  <div id="video-container">
-    <video id="video" controls></video>
-    <canvas id="overlay"></canvas>
-  </div>  <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('overlay');
-    const ctx = canvas.getContext('2d');
-    let boxesBySecond = {};
+  <div class="container-fluid">
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+      <button class="btn btn-primary" id="runBtn">▶ Виконати</button>
+      <button class="btn btn-success" id="saveBtn">💾 Зберегти</button>
+      <button class="btn btn-secondary" id="loadLastBtn">📥 Завантажити останнє</button>
+      <button class="btn btn-danger" id="clearBtn">🧹 Очистити</button>
+      <label class="btn btn-info mb-0">
+        📂 Імпорт HTML
+        <input type="file" id="importHtml" accept=".html" hidden />
+      </label>
+      <button class="btn btn-outline-light" id="toggleConsoleBtn">🛠 Консоль</button>
+      <div class="form-check form-switch ms-auto">
+        <input class="form-check-input" type="checkbox" id="wrapToggle" checked>
+        <label class="form-check-label text-light" for="wrapToggle">Перенос рядків</label>
+      </div>
+    </div>
 
-    document.getElementById('videoInput').addEventListener('change', e => {
-      const file = e.target.files[0];
-      if (file) {
-        video.src = URL.createObjectURL(file);
-      }
-    });
+    <div id="alerts" class="alert-placeholder"></div>
 
-    document.getElementById('jsonInput').addEventListener('change', e => {
-      const reader = new FileReader();
-      reader.onload = event => {
-        try {
-          boxesBySecond = JSON.parse(event.target.result);
-        } catch (err) {
-          alert("Ошибка в JSON: " + err);
-        }
-      };
-      reader.readAsText(e.target.files[0]);
-    });
+    
 
-    function drawBoxesForTime(currentTime) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const key = currentTime.toFixed(1);
-      const boxes = boxesBySecond[key] || [];
+    <ul class="nav nav-tabs" id="tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-html" data-bs-toggle="tab" data-bs-target="#html" type="button">HTML</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-css" data-bs-toggle="tab" data-bs-target="#css" type="button">CSS</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-js" data-bs-toggle="tab" data-bs-target="#js" type="button">JavaScript</button>
+      </li>
+    </ul>
 
-      boxes.forEach(box => {
-        const [x, y, w, h, label] = box;
-        ctx.strokeStyle = "lime";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, w, h);
-        ctx.font = "16px Arial";
-        ctx.fillStyle = "lime";
-        ctx.fillText(label, x, y - 5);
-      });
-    }
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="html" role="tabpanel">
+        <div class="mb-1 editor-label">HTML</div>
+        <textarea id="editor-html"></textarea>
+        <div class="small-muted">Вставляється в &lt;body&gt;.</div>
+      </div>
+      <div class="tab-pane fade" id="css" role="tabpanel">
+        <div class="mb-1 editor-label">CSS</div>
+        <textarea id="editor-css"></textarea>
+        <div class="small-muted">Вставляється в &lt;head&gt; через &lt;style&gt;.</div>
+      </div>
+      <div class="tab-pane fade" id="js" role="tabpanel">
+        <div class="mb-1 editor-label">JavaScript</div>
+        <textarea id="editor-js"></textarea>
+        <div class="small-muted">Виконується в кінці &lt;body&gt;.</div>
+      </div>
+    </div>
 
-    video.addEventListener('loadedmetadata', () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-    });
+    <div id="console" class="d-none"></div>
+  </div>
 
-    video.addEventListener('timeupdate', () => {
-      drawBoxesForTime(video.currentTime);
-    });
-  </script></body>
+  <!-- Скрипты: сначала зависимости, потом наш -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/lib/codemirror.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/xml/xml.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/javascript/javascript.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/css/css.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/mode/htmlmixed/htmlmixed.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/edit/closebrackets.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.13/addon/edit/matchbrackets.js"></script>
+
+  <script src="script.js"></script>
+</body>
 </html>
