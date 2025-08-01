@@ -1,3 +1,4 @@
+
 <!DOCTYPE html><html lang="uk">
 <head>
   <meta charset="UTF-8" />
@@ -12,10 +13,12 @@
     .editor-wrapper {
       border: 1px solid #333;
       border-radius: 8px;
-      overflow: hidden;
       margin-bottom: 20px;
       min-height: 50vh;
       max-height: 70vh;
+    }
+    .cm-editor {
+      height: 100%;
     }
     .btn-custom {
       background-color: #00bcd4;
@@ -81,31 +84,43 @@
 <div id="console" class="d-none"></div>
 
   </div>  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>  <script type="module">
-    import { EditorView, basicSetup } from "https://esm.sh/@codemirror/basic-setup";
+    import { EditorView, basicSetup, lineNumbers } from "https://esm.sh/@codemirror/basic-setup";
     import { html } from "https://esm.sh/@codemirror/lang-html";
     import { css } from "https://esm.sh/@codemirror/lang-css";
     import { javascript } from "https://esm.sh/@codemirror/lang-javascript";
     import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark";
+    import { lineWrapping } from "https://esm.sh/@codemirror/view";
     import { EditorState } from "https://esm.sh/@codemirror/state";
 
     let htmlEditor, cssEditor, jsEditor;
+    let wrapEnabled = false;
 
     function createEditor(container, lang, key, def) {
       return new EditorView({
-        doc: localStorage.getItem(key) || def,
-        extensions: [basicSetup, lang(), oneDark],
+        state: EditorState.create({
+          doc: localStorage.getItem(key) || def,
+          extensions: [basicSetup, lineNumbers(), lang(), oneDark]
+        }),
         parent: container
       });
     }
 
     function updateWrap(enabled) {
-      const ext = enabled ? [EditorView.lineWrapping] : [];
-      [htmlEditor, cssEditor, jsEditor].forEach(ed => {
-        ed.dispatch({ effects: EditorView.lineWrapping.reconfigure(ext) });
+      wrapEnabled = enabled;
+      [htmlEditor, cssEditor, jsEditor].forEach(editor => {
+        editor.dispatch({
+          effects: EditorView.reconfigure.of([
+            basicSetup,
+            lineNumbers(),
+            editor === htmlEditor ? html() : editor === cssEditor ? css() : javascript(),
+            oneDark,
+            ...(wrapEnabled ? [lineWrapping] : [])
+          ])
+        });
       });
     }
 
-    window.addEventListener("load", () => {
+    window.addEventListener("DOMContentLoaded", () => {
       htmlEditor = createEditor(document.getElementById("html-editor"), html, "htmlCode", "<h1>Привіт, світ!</h1>");
       cssEditor = createEditor(document.getElementById("css-editor"), css, "cssCode", "h1 { color: lightgreen; }");
       jsEditor = createEditor(document.getElementById("js-editor"), javascript, "jsCode", "console.log('Працює!');");
