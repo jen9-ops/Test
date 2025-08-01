@@ -1,25 +1,21 @@
-<!DOCTYPE html>
-<html lang="uk">
+<!DOCTYPE html><html lang="uk">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Редактор HTML/CSS/JS</title>
-
-  <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://esm.sh/@codemirror/theme-one-dark@6.2.1/theme.css" />
-
-  <style>
+  <title>Редактор HTML/CSS/JS</title>  <!-- Bootstrap -->  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://esm.sh/@codemirror/theme-one-dark@6.2.1/theme.css" />  <style>
     body {
       background-color: #121212;
       color: #fff;
-      padding-top: 30px;
+      padding-top: 20px;
     }
     .editor-wrapper {
       border: 1px solid #333;
       border-radius: 8px;
       overflow: hidden;
       margin-bottom: 20px;
+      min-height: 50vh;
+      max-height: 70vh;
     }
     .btn-custom {
       background-color: #00bcd4;
@@ -42,45 +38,49 @@
     input[type="file"] {
       display: none;
     }
-  </style>
-</head>
+  </style></head>
 <body>
-  <div class="container">
-    <h1 class="text-center">🌐 Веб-Редактор HTML / CSS / JS</h1>
+  <div class="container-fluid">
+    <h1 class="text-center">🌐 Веб-Редактор HTML / CSS / JS</h1><ul class="nav nav-tabs mb-3" id="editorTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="html-tab" data-bs-toggle="tab" data-bs-target="#html" type="button" role="tab">HTML</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="css-tab" data-bs-toggle="tab" data-bs-target="#css" type="button" role="tab">CSS</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="js-tab" data-bs-toggle="tab" data-bs-target="#js" type="button" role="tab">JavaScript</button>
+  </li>
+</ul>
 
-    <div class="form-check form-switch mb-3 text-end">
-      <input class="form-check-input" type="checkbox" id="wrap-toggle">
-      <label class="form-check-label" for="wrap-toggle">Перенос рядків (Word wrap)</label>
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">HTML</label>
-      <div id="html-editor" class="editor-wrapper"></div>
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">CSS</label>
-      <div id="css-editor" class="editor-wrapper"></div>
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">JavaScript</label>
-      <div id="js-editor" class="editor-wrapper"></div>
-    </div>
-
-    <div class="d-flex justify-content-center gap-3 mb-3 flex-wrap">
-      <button class="btn btn-custom" id="run">▶ Виконати</button>
-      <button class="btn btn-outline-light" id="save">💾 Зберегти</button>
-      <button class="btn btn-outline-warning" id="show-console">🛠 Консоль</button>
-      <label class="btn btn-outline-info" for="file-import">📂 Імпорт</label>
-      <input type="file" id="file-import" accept=".html" />
-    </div>
-
-    <div id="console" class="d-none"></div>
+<div class="tab-content">
+  <div class="tab-pane fade show active" id="html" role="tabpanel">
+    <div id="html-editor" class="editor-wrapper w-100"></div>
   </div>
+  <div class="tab-pane fade" id="css" role="tabpanel">
+    <div id="css-editor" class="editor-wrapper w-100"></div>
+  </div>
+  <div class="tab-pane fade" id="js" role="tabpanel">
+    <div id="js-editor" class="editor-wrapper w-100"></div>
+  </div>
+</div>
 
-  <!-- CodeMirror -->
-  <script type="module">
+<div class="form-check form-switch mb-3 text-end">
+  <input class="form-check-input" type="checkbox" id="wrap-toggle">
+  <label class="form-check-label" for="wrap-toggle">Перенос рядків (Word wrap)</label>
+</div>
+
+<div class="d-flex justify-content-center gap-3 mb-3 flex-wrap">
+  <button class="btn btn-custom" id="run">▶ Виконати</button>
+  <button class="btn btn-outline-light" id="save">💾 Зберегти</button>
+  <button class="btn btn-outline-warning" id="show-console">🛠 Консоль</button>
+  <label class="btn btn-outline-info" for="file-import">📂 Імпорт</label>
+  <input type="file" id="file-import" accept=".html" />
+</div>
+
+<div id="console" class="d-none"></div>
+
+  </div>  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>  <script type="module">
     import { EditorView, basicSetup } from "https://esm.sh/@codemirror/basic-setup";
     import { html } from "https://esm.sh/@codemirror/lang-html";
     import { css } from "https://esm.sh/@codemirror/lang-css";
@@ -89,105 +89,77 @@
     import { EditorState } from "https://esm.sh/@codemirror/state";
 
     let htmlEditor, cssEditor, jsEditor;
-    let wrapExtension = [];
 
-    const wrapToggle = document.getElementById("wrap-toggle");
-
-    function makeEditor(parent, language, storageKey, defaultValue) {
-      const saved = localStorage.getItem(storageKey) || defaultValue;
+    function createEditor(container, lang, key, def) {
       return new EditorView({
-        doc: saved,
-        extensions: [basicSetup, language(), oneDark, ...wrapExtension],
-        parent: parent
+        doc: localStorage.getItem(key) || def,
+        extensions: [basicSetup, lang(), oneDark],
+        parent: container
       });
     }
 
-    function applyWrap(editor, enabled) {
-      editor.dispatch({
-        effects: EditorView.lineWrapping.reconfigure(
-          enabled ? EditorView.lineWrapping : []
-        )
+    function updateWrap(enabled) {
+      const ext = enabled ? [EditorView.lineWrapping] : [];
+      [htmlEditor, cssEditor, jsEditor].forEach(ed => {
+        ed.dispatch({ effects: EditorView.lineWrapping.reconfigure(ext) });
       });
     }
 
     window.addEventListener("load", () => {
-      htmlEditor = makeEditor(document.getElementById("html-editor"), html, "htmlCode", "<h1>Привіт, світ!</h1>");
-      cssEditor = makeEditor(document.getElementById("css-editor"), css, "cssCode", "h1 { color: lightgreen; }");
-      jsEditor = makeEditor(document.getElementById("js-editor"), javascript, "jsCode", "console.log('Працює!');");
+      htmlEditor = createEditor(document.getElementById("html-editor"), html, "htmlCode", "<h1>Привіт, світ!</h1>");
+      cssEditor = createEditor(document.getElementById("css-editor"), css, "cssCode", "h1 { color: lightgreen; }");
+      jsEditor = createEditor(document.getElementById("js-editor"), javascript, "jsCode", "console.log('Працює!');");
 
-      document.getElementById("run").onclick = runCode;
-      document.getElementById("save").onclick = saveCode;
-      document.getElementById("show-console").onclick = () => {
-        document.getElementById("console").classList.toggle("d-none");
-      };
+      document.getElementById("wrap-toggle").addEventListener("change", e => updateWrap(e.target.checked));
 
-      // Word wrap toggle
-      wrapToggle.addEventListener("change", () => {
-        const wrap = wrapToggle.checked;
-        applyWrap(htmlEditor, wrap);
-        applyWrap(cssEditor, wrap);
-        applyWrap(jsEditor, wrap);
-      });
-
-      // Автосохранение
       setInterval(() => {
         localStorage.setItem("htmlCode", htmlEditor.state.doc.toString());
         localStorage.setItem("cssCode", cssEditor.state.doc.toString());
         localStorage.setItem("jsCode", jsEditor.state.doc.toString());
       }, 2000);
 
-      // Импорт из файла
       document.getElementById("file-import").addEventListener("change", e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(event) {
-          const content = event.target.result;
-          htmlEditor.dispatch({ changes: { from: 0, to: htmlEditor.state.doc.length, insert: content } });
-        };
-        reader.readAsText(file);
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = ev => htmlEditor.dispatch({ changes: { from: 0, to: htmlEditor.state.doc.length, insert: ev.target.result } });
+        r.readAsText(f);
       });
-    });
 
-    function runCode() {
-      const htmlCode = htmlEditor.state.doc.toString();
-      const cssCode = `<style>${cssEditor.state.doc.toString()}</style>`;
-      const jsCode = `<script>
-        try {
-          ${jsEditor.state.doc.toString()}
-        } catch (e) {
-          window.opener?.postMessage('[JS Error] ' + e.message, '*');
-        }
-      <\/script>`;
+      document.getElementById("run").onclick = () => {
+        const html = htmlEditor.state.doc.toString();
+        const css = `<style>${cssEditor.state.doc.toString()}</style>`;const js = `<script>${jsEditor.state.doc.toString()}<\/script>`;
+    const full = `<!DOCTYPE html><html><head>${css}</head><body>${html}${js}</body></html>`;
+    const win = window.open();
+    if (win) {
+      win.document.write(full);
+      win.document.close();
+      window.addEventListener("message", e => {
+        const box = document.getElementById("console");
+        box.classList.remove("d-none");
+        box.textContent += e.data + "\n";
+      });
+    } else alert("Браузер заблокував спливаюче вікно.");
+  };
 
-      const code = `<!DOCTYPE html><html><head>${cssCode}</head><body>${htmlCode}${jsCode}</body></html>`;
-      const win = window.open();
-      if (win) {
-        win.document.write(code);
-        win.document.close();
-        window.addEventListener("message", e => {
-          const box = document.getElementById("console");
-          box.classList.remove("d-none");
-          box.textContent += e.data + "\n";
-        });
-      } else {
-        alert("Браузер заблокував спливаюче вікно.");
-      }
-    }
+  document.getElementById("save").onclick = () => {
+    const html = htmlEditor.state.doc.toString();
+    const css = `<style>${cssEditor.state.doc.toString()}</style>`;
+    const js = `<script>${jsEditor.state.doc.toString()}<\/script>`;
+    const blob = new Blob([
+      `<!DOCTYPE html><html><head>${css}</head><body>${html}${js}</body></html>`
+    ], { type: "text/html" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "index.html";
+    a.click();
+  };
 
-    function saveCode() {
-      const htmlCode = htmlEditor.state.doc.toString();
-      const cssCode = `<style>${cssEditor.state.doc.toString()}</style>`;
-      const jsCode = `<script>${jsEditor.state.doc.toString()}<\/script>`;
-      const blob = new Blob(
-        [`<!DOCTYPE html><html><head>${cssCode}</head><body>${htmlCode}${jsCode}</body></html>`],
-        { type: "text/html" }
-      );
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "index.html";
-      a.click();
-    }
+  document.getElementById("show-console").onclick = () => {
+    document.getElementById("console").classList.toggle("d-none");
+  };
+});
+
   </script>
 </body>
 </html>
